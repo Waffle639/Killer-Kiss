@@ -8,10 +8,9 @@
 
 - 📧 Envío automático de correos con la víctima asignada.
 - 🔄 Generación de un círculo cerrado de asesinos y víctimas.
-- 📊 Gestión y almacenamiento de datos: jugadores, partidas y resultados.
+- 💾 Gestión y almacenamiento de datos: jugadores, partidas y resultados.
 - 🏆 Sistema de ranking según las partidas ganadas y jugadas.
 - 🔐 Validación y control de errores (duplicados, listas vacías, etc).
-- 💾 Persistencia de los datos usando archivos **JSON**.
 
 ---
 
