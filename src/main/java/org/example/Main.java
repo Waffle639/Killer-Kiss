@@ -127,7 +127,7 @@ public class Main {
                     int seleccion = demenar_numero(1, indicesActivas.size()) - 1;
                     int numPartida = indicesActivas.get(seleccion);
 
-                    System.out.println("Introduce el número del ganador: ");
+                    System.out.println("Introdueix el numero del guanyador: ");
                     KillerKiss partidaSeleccionada = partides.get(numPartida);
                     for (int i = 0; i < partidaSeleccionada.getPersonas().size(); i++) {
                         System.out.println((i + 1) + " - " + partidaSeleccionada.getPersonas().get(i).getNom());
@@ -136,9 +136,16 @@ public class Main {
                     int numGuanyador = demenar_numero(1, partidaSeleccionada.getPersonas().size()) - 1;
                     if (numGuanyador >= 0 && numGuanyador < partidaSeleccionada.getPersonas().size()) {
                         System.out.println("Ganador: " + partidaSeleccionada.getPersonas().get(numGuanyador).getNom());
-                        partidaSeleccionada.acavarPartida(partidaSeleccionada.getPersonas().get(numGuanyador));
+                        Persona guanyador = partidaSeleccionada.getPersonas().get(numGuanyador);
+                        for (Persona p : persones) {
+                            if (p.equals(guanyador)) {
+                                p.sumarVictoria();
+                                break;
+                            }
+                        }
+                        partidaSeleccionada.acavarPartida(guanyador);
                     } else {
-                        System.out.println("Número de ganador no válido.");
+                        System.out.println("Numero de ganador no valido");
                     }
                     break;
                 case 6:

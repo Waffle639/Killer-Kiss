@@ -35,11 +35,8 @@ public class KillerKiss {
 
     public ArrayList<Persona> sortPersonas() {
         estat = true;
-        Random rn = new Random();
-        ArrayList<Persona> cua = new ArrayList<Persona>(personas);
-        Collections.shuffle(cua);
-
-        return cua;
+        Collections.shuffle(this.personas);
+        return personas;
     }
 
     public void acavarPartida(Persona guanyador) {
