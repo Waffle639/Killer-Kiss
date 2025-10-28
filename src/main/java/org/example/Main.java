@@ -2,26 +2,31 @@ package org.example;
 
 import jakarta.mail.*;
 import jakarta.mail.internet.*;
+import org.example.repository.KillerKissRepository;
+import org.example.repository.PersonaRepository;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
 
-import java.io.*;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-
 import java.util.Scanner;
 
+@SpringBootApplication
 public class Main {
+    
     public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-        String nomPersonesJson = "persones.json";
-        String nomPartidesJson = "partides.json";
-        ArrayList<Persona> persones = cargarPersonasDelJson(nomPersonesJson);
-        ArrayList<KillerKiss> partides = cargarPartidesDelJson(nomPartidesJson);
+        SpringApplication.run(Main.class, args);
+    }
+
+    @Bean
+    public CommandLineRunner run(PersonaRepository personaRepository, KillerKissRepository partidaRepository) {
+        return args -> {
+            Scanner sc = new Scanner(System.in);
+            ArrayList<Persona> persones = new ArrayList<>(personaRepository.findAll());
+            ArrayList<KillerKiss> partides = new ArrayList<>(partidaRepository.findAll());
         int opcio = -1;
         do {
             System.out.println("--------------Killer Kiss------------------");
@@ -39,23 +44,41 @@ public class Main {
             switch (opcio) {
                 case 1:
                     System.out.println("--------------Añadir persona------------------");
-                    afegirPersona(persones);
+                    Persona nuevaPersona = afegirPersona(persones);
+                    personaRepository.save(nuevaPersona); // Guardar en BD
                     break;
                 case 2:
+                    if (persones.isEmpty()) {
+                        System.out.println("No hay personas registradas.");
+                        break;
+                    }
                     System.out.println("--------------Eliminar persona------------------");
                     for (int i = 0; i < persones.size(); i++) {
-                        System.out.println(i + 1 + " - " + persones.get(i).getNom());
+                        System.out.println((i + 1) + " - " + persones.get(i).getNom());
                     }
+                    System.out.println("0 - Salir sin eliminar");
                     System.out.print("Introduce el número de la persona a eliminar: ");
-                    int numPersona = demenar_numero(1, persones.size()) - 1;
+                    int numPersona = demenar_numero(0, persones.size());
+                    if (numPersona == 0) {
+                        System.out.println("Operación cancelada.");
+                        break;
+                    }
+                    numPersona--; // Ajustar índice
                     if (numPersona >= 0 && numPersona < persones.size()) {
-                        System.out.println("Persona eliminada: " + persones.get(numPersona).getNom());
+                        Persona personaAEliminar = persones.get(numPersona);
+                        System.out.println("Persona eliminada: " + personaAEliminar.getNom());
+                        personaRepository.delete(personaAEliminar); // Eliminar de BD
                         persones.remove(numPersona);
                     } else {
                         System.out.println("Número de persona no válido.");
                     }
+                    break;
 
                 case 3:
+                    if (persones.isEmpty()) {
+                        System.out.println("No hay personas registradas.");
+                        break;
+                    }
                     System.out.println("--------------Listar personas------------------");
                     for (int i = 0; i < persones.size(); i++) {
                         System.out.println(i + 1 + " - " + persones.get(i).getNom());
@@ -75,43 +98,60 @@ public class Main {
                         }
                         System.out.println("¿Quieres editar los participantes? (si/no)");
                         String resposta = sc.nextLine();
-                        String resposta2;
+                        String resposta2 = "";
                         if (resposta.equalsIgnoreCase("si")) {
                             do {
-                                System.out.println("¿Quieres eliminar o añadir participantes? (eliminar/añadir/continuar)");
+                                System.out.println("¿Quieres eliminar o añadir participantes? (eliminar/añadir/continuar/salir)");
                                 resposta2 = sc.nextLine();
-                                if (resposta2.equalsIgnoreCase("eliminar")) {
+                                if (resposta2.equalsIgnoreCase("salir")) {
+                                    System.out.println("Partida cancelada.");
+                                    break;
+                                } else if (resposta2.equalsIgnoreCase("eliminar")) {
                                     for (int i = 0; i < persones.size(); i++) {
-                                        System.out.println(i + 1 + " - " + persones.get(i).getNom());
+                                        System.out.println((i + 1) + " - " + persones.get(i).getNom());
                                     }
+                                    System.out.println("0 - Volver sin eliminar");
                                     System.out.println("Introduce el número de la persona a eliminar: ");
-                                    int numEliminar = demenar_numero(1, persones.size()) - 1;
-                                    if (numEliminar >= 0 && numEliminar < persones.size()) {
-                                        System.out.println("Persona eliminada: " + persones.get(numEliminar).getNom());
-                                        partida.eliminarPersona(persones.get(numEliminar));
+                                    int numEliminar = demenar_numero(0, persones.size());
+                                    if (numEliminar == 0) {
+                                        System.out.println("Operación cancelada.");
                                     } else {
-                                        System.out.println("Número de persona no válido.");
+                                        numEliminar--; // Ajustar índice
+                                        if (numEliminar >= 0 && numEliminar < persones.size()) {
+                                            System.out.println("Persona eliminada: " + persones.get(numEliminar).getNom());
+                                            partida.eliminarPersona(persones.get(numEliminar));
+                                        } else {
+                                            System.out.println("Número de persona no válido.");
+                                        }
                                     }
                                 } else if (resposta2.equalsIgnoreCase("añadir")) {
                                     partida.afegirPersona(afegirPersona(persones));
                                 }
-                            } while (!resposta2.equalsIgnoreCase("continuar"));
+                            } while (!resposta2.equalsIgnoreCase("continuar") && !resposta2.equalsIgnoreCase("salir"));
                         }
+                        
+                        // Si se canceló la partida, no continuar
+                        if (resposta.equalsIgnoreCase("si") && resposta2.equalsIgnoreCase("salir")) {
+                            break;
+                        }
+                        
                         partida.sortPersonas();
+                        partida.iniciarPartida(); // Iniciar partida
+                        partidaRepository.save(partida); // Guardar en BD
+                        partides.add(partida);
                         for (int i = 0; i < partida.getPersonas().size(); i++) {
                             String missatge = "Hola " + partida.getPersonas().get(i).getNom() + ",\n\n" +
                                     "¡Bienvenido a la partida de Killer Kiss!\n" +
                                     "Tu víctima es: " + partida.getPersonas().get((i + 1) % partida.getPersonas().size()).getNom() + ".\n";
                             enviarCorreu(partida.getPersonas().get(i).getMail(), missatge, "Partida Killer Kiss");
                         }
-                        partides.add(partida);
                     }
                     break;
                 case 5:
                     System.out.println("--------------Terminar partida------------------");
                     ArrayList<Integer> indicesActivas = new ArrayList<>();
                     for (int i = 0; i < partides.size(); i++) {
-                        if (partides.get(i).getEstat()) {
+                        if (partides.get(i).isEstat()) {
                             indicesActivas.add(i);
                         }
                     }
@@ -124,7 +164,14 @@ public class Main {
                         int idxReal = indicesActivas.get(i);
                         System.out.println((i + 1) + " - " + partides.get(idxReal).getNom());
                     }
-                    int seleccion = demenar_numero(1, indicesActivas.size()) - 1;
+                    System.out.println("0 - Salir sin terminar partida");
+                    System.out.print("Selecciona una partida: ");
+                    int seleccion = demenar_numero(0, indicesActivas.size());
+                    if (seleccion == 0) {
+                        System.out.println("Operación cancelada.");
+                        break;
+                    }
+                    seleccion--; // Ajustar índice
                     int numPartida = indicesActivas.get(seleccion);
 
                     System.out.println("Introdueix el numero del guanyador: ");
@@ -132,18 +179,26 @@ public class Main {
                     for (int i = 0; i < partidaSeleccionada.getPersonas().size(); i++) {
                         System.out.println((i + 1) + " - " + partidaSeleccionada.getPersonas().get(i).getNom());
                     }
+                    System.out.println("0 - Cancelar");
 
-                    int numGuanyador = demenar_numero(1, partidaSeleccionada.getPersonas().size()) - 1;
+                    int numGuanyador = demenar_numero(0, partidaSeleccionada.getPersonas().size());
+                    if (numGuanyador == 0) {
+                        System.out.println("Operación cancelada.");
+                        break;
+                    }
+                    numGuanyador--; // Ajustar índice
                     if (numGuanyador >= 0 && numGuanyador < partidaSeleccionada.getPersonas().size()) {
                         System.out.println("Ganador: " + partidaSeleccionada.getPersonas().get(numGuanyador).getNom());
                         Persona guanyador = partidaSeleccionada.getPersonas().get(numGuanyador);
                         for (Persona p : persones) {
-                            if (p.equals(guanyador)) {
+                            if (p.getId().equals(guanyador.getId())) {
                                 p.sumarVictoria();
+                                personaRepository.save(p); // Guardar victoria en BD
                                 break;
                             }
                         }
                         partidaSeleccionada.acavarPartida(guanyador);
+                        partidaRepository.save(partidaSeleccionada); // Guardar partida finalizada en BD
                     } else {
                         System.out.println("Numero de ganador no valido");
                     }
@@ -164,23 +219,21 @@ public class Main {
                                 System.out.println("--- TOTAL DE PARTIDAS ---");
                                 System.out.println("Partidas totales: " + partides.size());
                                 System.out.println("Partidas activas: " +
-                                        partides.stream().filter(KillerKiss::getEstat).count());
+                                        partides.stream().filter(KillerKiss::isEstat).count());
                                 System.out.println("Partidas finalizadas: " +
-                                        partides.stream().filter(p -> !p.getEstat()).count());
+                                        partides.stream().filter(p -> !p.isEstat()).count());
                                 break;
 
                             case 2:
                                 System.out.println("--- Ranking de Jugadores ---");
-                                ArrayList<Persona> ranking = new ArrayList<>(persones);
-                                ranking.sort((p1, p2) -> Integer.compare(p2.getVictories(), p1.getVictories()));
-
-                                System.out.println("Pos.  Nombre    Victorias     Sección");
-                                System.out.println("------------------------------------------");
+                                List<Persona> ranking = personaRepository.findAllOrderByVictoriesDesc();
+                            
+                                System.out.println("Pos.  Nombre    Victorias ");
+                                System.out.println("-----------------------------");
                                 for (int i = 0; i < ranking.size(); i++) {
                                     Persona p = ranking.get(i);
                                     System.out.println((i+1) + ".   " + p.getNom() +
-                                            " - Victorias: " + p.getVictories() +
-                                            " - Sección: " + p.getseccio());
+                                            " - Victorias: " + p.getVictories());
                                 }
                                 break;
 
@@ -194,8 +247,8 @@ public class Main {
 
         } while (opcio != 0);
 
-        guardarPersonasEnFitxer(persones, nomPersonesJson);
-        guardarPartidesEnFitxer(partides, nomPartidesJson);
+        System.out.println("¡Hasta pronto! Los datos se han guardado automáticamente en la base de datos.");
+        };
     }
 
     private static void enviarCorreu(String destinatari, String missatge, String assumpte) {
@@ -229,60 +282,6 @@ public class Main {
         }
     }
 
-    private static void guardarPersonasEnFitxer(ArrayList<Persona> personas, String nomFitxerJson) {
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-
-        try (Writer writer = new FileWriter(nomFitxerJson)) {
-            gson.toJson(personas, writer);
-            System.out.println("Datos guardados correctamente en el archivo: " + nomFitxerJson);
-        } catch (IOException e) {
-            System.err.println("Error al guardar en el archivo JSON: " + e.getMessage());
-        }
-    }
-
-    private static ArrayList<Persona> cargarPersonasDelJson(String nomFitxerJson) {
-        Gson gson = new Gson();
-        ArrayList<Persona> personas = new ArrayList<>();
-
-        try (Reader reader = new FileReader(nomFitxerJson)) {
-            Type tipuscanso = new TypeToken<List<Persona>>() {
-            }.getType();
-
-            personas = gson.fromJson(reader, tipuscanso);
-        } catch (IOException e) {
-            System.err.println("Error al leer el archivo JSON: " + e.getMessage());
-        }
-
-        return personas;
-    }
-
-    private static void guardarPartidesEnFitxer(ArrayList<KillerKiss> killerKisses, String nomFitxerJson) {
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-
-        try (Writer writer = new FileWriter(nomFitxerJson)) {
-            gson.toJson(killerKisses, writer);
-            System.out.println("Datos guardados correctamente en el archivo: " + nomFitxerJson);
-        } catch (IOException e) {
-            System.err.println("Error al guardar en el archivo JSON: " + e.getMessage());
-        }
-    }
-
-    private static ArrayList<KillerKiss> cargarPartidesDelJson(String nomFitxerJson) {
-        Gson gson = new Gson();
-        ArrayList<KillerKiss> killerKisses = new ArrayList<>();
-
-        try (Reader reader = new FileReader(nomFitxerJson)) {
-            Type tipuscanso = new TypeToken<List<KillerKiss>>() {
-            }.getType();
-
-            killerKisses = gson.fromJson(reader, tipuscanso);
-        } catch (IOException e) {
-            System.err.println("Error al leer el archivo JSON: " + e.getMessage());
-        }
-
-        return killerKisses;
-    }
-
     private static int demenar_numero(int min, int max) {
         Scanner sc = new Scanner(System.in);
         int numero = -1;
@@ -305,11 +304,9 @@ public class Main {
         Scanner sc = new Scanner(System.in);
         System.out.print("Introduce el nombre de la persona: ");
         String nom = sc.nextLine();
-        System.out.print("Introduce la sección de la persona: ");
-        String seccio = sc.nextLine();
         System.out.print("Introduce el correo de la persona: ");
         String mail = sc.nextLine();
-        Persona persona = new Persona(nom, seccio, mail);
+        Persona persona = new Persona(nom, mail);
         persones.add(persona);
         System.out.println("Persona añadida correctamente.");
         return persona;
