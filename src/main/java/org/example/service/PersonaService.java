@@ -94,30 +94,15 @@ public class PersonaService {
 
     /**
      * Elimina una persona por su ID.
+     * La base de datos automáticamente limpia las referencias gracias a CASCADE.
      */
     public void eliminar(Long id) {
         if (!personaRepository.existsById(id)) {
             throw new RuntimeException("Persona no encontrada con ID: " + id);
         }
         
-        try {
-            // 1. Eliminar de la tabla intermedia partida_participantes
-            personaRepository.eliminarDePartidas(id);
-            
-            // 2. Poner a NULL el ganador_id en partidas donde era ganador
-            personaRepository.limpiarGanador(id);
-            
-            // 3. Ahora sí eliminar la persona
-            personaRepository.deleteById(id);
-        } catch (Exception e) {
-            // Si hay error, simplemente intentar eliminar directamente
-            // (funcionará si no hay restricciones de FK)
-            try {
-                personaRepository.deleteById(id);
-            } catch (Exception ex) {
-                throw new RuntimeException("No se puede eliminar la persona porque está en partidas activas. Elimina primero las partidas.");
-            }
-        }
+        // Simplemente eliminar - la base de datos se encarga del resto
+        personaRepository.deleteById(id);
     }
 
     /**

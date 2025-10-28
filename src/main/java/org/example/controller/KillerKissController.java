@@ -57,7 +57,7 @@ public class KillerKissController {
      * Obtiene una partida por su ID.
      */
     @GetMapping("/{id}")
-    public ResponseEntity<KillerKiss> buscarPorId(@PathVariable Long id) {
+    public ResponseEntity<KillerKiss> buscarPorId(@PathVariable(name = "id") Long id) {
         return partidaService.buscarPorId(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -97,7 +97,7 @@ public class KillerKissController {
      * Body JSON: {"ganadorId": 5}
      */
     @PutMapping("/{id}/finalizar")
-    public ResponseEntity<?> finalizar(@PathVariable Long id, @RequestBody Map<String, Long> body) {
+    public ResponseEntity<?> finalizar(@PathVariable(name = "id") Long id, @RequestBody Map<String, Long> body) {
         try {
             Long ganadorId = body.get("ganadorId");
             if (ganadorId == null) {
@@ -119,7 +119,7 @@ public class KillerKissController {
      * Elimina una partida.
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> eliminar(@PathVariable Long id) {
+    public ResponseEntity<?> eliminar(@PathVariable(name = "id") Long id) {
         try {
             partidaService.eliminar(id);
             return ResponseEntity.ok(new MessageResponse("Partida eliminada correctamente"));

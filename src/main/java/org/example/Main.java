@@ -21,6 +21,12 @@ public class Main {
         SpringApplication.run(Main.class, args);
     }
 
+    /*
+     * MENÚ DE CONSOLA - COMENTADO PARA USAR EL FRONTEND WEB
+     * Si quieres usar el menú de consola, descomenta este método
+     * Si quieres usar el frontend web, déjalo comentado
+     */
+    /*
     @Bean
     public CommandLineRunner run(PersonaRepository personaRepository, KillerKissRepository partidaRepository) {
         return args -> {
@@ -311,4 +317,5 @@ public class Main {
         System.out.println("Persona añadida correctamente.");
         return persona;
     }
+    */
 }

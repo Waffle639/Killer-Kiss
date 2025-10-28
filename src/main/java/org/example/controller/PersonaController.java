@@ -36,7 +36,7 @@ public class PersonaController {
      * Obtiene una persona por su ID.
      */
     @GetMapping("/{id}")
-    public ResponseEntity<Persona> buscarPorId(@PathVariable Long id) {
+    public ResponseEntity<Persona> buscarPorId(@PathVariable(name = "id") Long id) {
         return personaService.buscarPorId(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
@@ -76,7 +76,7 @@ public class PersonaController {
      * Body JSON: {"nom":"Juan Actualizado","mail":"nuevo@mail.com"}
      */
     @PutMapping("/{id}")
-    public ResponseEntity<?> actualizar(@PathVariable Long id, @RequestBody Persona persona) {
+    public ResponseEntity<?> actualizar(@PathVariable(name = "id") Long id, @RequestBody Persona persona) {
         try {
             Persona personaActualizada = personaService.actualizar(id, persona);
             return ResponseEntity.ok(personaActualizada);
@@ -93,7 +93,7 @@ public class PersonaController {
      * Elimina una persona.
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> eliminar(@PathVariable Long id) {
+    public ResponseEntity<?> eliminar(@PathVariable(name = "id") Long id) {
         try {
             personaService.eliminar(id);
             return ResponseEntity.ok(new MessageResponse("Persona eliminada correctamente"));

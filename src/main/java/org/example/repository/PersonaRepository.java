@@ -2,9 +2,7 @@ package org.example.repository;
 
 import org.example.Persona;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -40,18 +38,4 @@ public interface PersonaRepository extends JpaRepository<Persona, Long> {
      */
     @Query("SELECT p FROM Persona p ORDER BY p.victories DESC")
     List<Persona> findAllOrderByVictoriesDesc();
-    
-    /**
-     * Elimina las referencias de una persona en la tabla intermedia partida_participantes.
-     */
-    @Modifying
-    @Query(value = "DELETE FROM partida_participantes WHERE persona_id = :personaId", nativeQuery = true)
-    void eliminarDePartidas(@Param("personaId") Long personaId);
-    
-    /**
-     * Pone a NULL el ganador en partidas donde esta persona era ganadora.
-     */
-    @Modifying
-    @Query(value = "UPDATE partidas SET ganador_id = NULL WHERE ganador_id = :personaId", nativeQuery = true)
-    void limpiarGanador(@Param("personaId") Long personaId);
 }
