@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Killer Kiss - Gestión de Partidas</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>KILLER KISS</h1>
+            <p class="subtitle">Sistema de Gestión de Partidas</p>
+        </header>
+
+        <!-- Tabs de navegación -->
+        <div class="tabs">
+            <button class="tab-button active" onclick="showTab('personas', event)">👥 Personas</button>
+            <button class="tab-button" onclick="showTab('partidas', event)">🎯 Partidas</button>
+            <button class="tab-button" onclick="showTab('ranking', event)">🏆 Ranking</button>
+            <button class="tab-button" onclick="showTab('estadisticas', event)">📊 Estadísticas</button>
+        </div>
+
+        <!-- TAB: PERSONAS -->
+        <div id="personas-tab" class="tab-content active">
+            <div class="section">
+                <h2>Gestión de Personas</h2>
+                
+                <!-- Formulario añadir persona -->
+                <div class="form-container">
+                    <h3>➕ Añadir Nueva Persona</h3>
+                    <form id="form-persona">
+                        <input type="text" id="persona-nombre" placeholder="Nombre" required>
+                        <input type="email" id="persona-email" placeholder="Email" required>
+                        <button type="submit" class="btn-primary">Guardar</button>
+                    </form>
+                </div>
+
+                <!-- Listado de personas -->
+                <div class="table-container">
+                    <h3>Listado de Personas</h3>
+                    <table id="tabla-personas">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Email</th>
+                                <th>Victorias</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Se llenará dinámicamente con JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: PARTIDAS -->
+        <div id="partidas-tab" class="tab-content">
+            <div class="section">
+                <h2>Gestión de Partidas</h2>
+
+                <!-- Formulario crear partida -->
+                <div class="form-container">
+                    <h3>➕ Crear Nueva Partida</h3>
+                    <form id="form-partida">
+                        <input type="text" id="partida-nombre" placeholder="Nombre de la partida" required>
+                        <div id="participantes-selector">
+                            <label>Selecciona participantes (mínimo 2):</label>
+                            <div id="lista-participantes">
+                                <!-- Se llenará dinámicamente -->
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary">Crear Partida</button>
+                    </form>
+                </div>
+
+                <!-- Partidas activas -->
+                <div class="table-container">
+                    <h3>Partidas Activas</h3>
+                    <table id="tabla-partidas-activas">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Participantes</th>
+                                <th>Fecha Inicio</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Se llenará dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Partidas finalizadas -->
+                <div class="table-container">
+                    <h3>Partidas Finalizadas</h3>
+                    <table id="tabla-partidas-finalizadas">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Ganador</th>
+                                <th>Fecha Fin</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Se llenará dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: RANKING -->
+        <div id="ranking-tab" class="tab-content">
+            <div class="section">
+                <h2>Ranking de Victorias</h2>
+                
+                <div class="ranking-container">
+                    <div id="ranking-personas">
+                        <!-- Se llenará dinámicamente con JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: ESTADÍSTICAS -->
+        <div id="estadisticas-tab" class="tab-content">
+            <div class="section">
+                <h2>Estadísticas Generales</h2>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Total Partidas</h3>
+                        <p id="stat-total-partidas" class="stat-number">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Partidas Activas</h3>
+                        <p id="stat-partidas-activas" class="stat-number">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Partidas Finalizadas</h3>
+                        <p id="stat-partidas-finalizadas" class="stat-number">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Jugadores</h3>
+                        <p id="stat-total-jugadores" class="stat-number">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para finalizar partida -->
+    <div id="modal-finalizar" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModal()">&times;</span>
+            <h2>Finalizar Partida</h2>
+            <p>Selecciona el ganador:</p>
+            <div id="modal-ganadores-lista">
+                <!-- Se llenará dinámicamente -->
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

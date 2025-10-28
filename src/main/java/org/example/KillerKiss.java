@@ -37,7 +37,7 @@ public class KillerKiss {
     private boolean estat = false;
     
     @ManyToOne
-    @JoinColumn(name = "ganador_id")
+    @JoinColumn(name = "ganador_id", nullable = true)
     private Persona ganador;
     
     @Column(name = "fecha_creacion")

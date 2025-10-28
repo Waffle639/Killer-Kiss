@@ -34,9 +34,19 @@ public interface KillerKissRepository extends JpaRepository<KillerKiss, Long> {
     List<KillerKiss> findByEstatFalse();
     
     /**
+     * Cuenta partidas por estado.
+     */
+    long countByEstat(boolean estat);
+    
+    /**
      * Busca partidas por nombre.
      */
     Optional<KillerKiss> findByNom(String nom);
+    
+    /**
+     * Busca si existe una partida activa con ese nombre.
+     */
+    boolean existsByNomAndEstatTrue(String nom);
     
     /**
      * Busca partidas ganadas por una persona específica.
