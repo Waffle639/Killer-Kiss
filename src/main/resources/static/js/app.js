@@ -279,12 +279,33 @@ function actualizarSelectorParticipantes() {
         return;
     }
     
-    container.innerHTML = personas.map(persona => `
+    const checkboxes = personas.map(persona => `
         <label class="participante-checkbox">
-            <input type="checkbox" name="participante" value="${persona.id}">
+            <input type="checkbox" name="participante" value="${persona.id}" onchange="actualizarCheckboxSelectAll()">
             ${persona.nom}
         </label>
     `).join('');
+    
+    container.innerHTML = checkboxes;
+}
+
+function toggleSeleccionarTodos() {
+    const selectAllCheckbox = document.getElementById('select-all-checkbox');
+    const checkboxes = document.querySelectorAll('input[name="participante"]');
+    
+    checkboxes.forEach(cb => {
+        cb.checked = selectAllCheckbox.checked;
+    });
+}
+
+function actualizarCheckboxSelectAll() {
+    const selectAllCheckbox = document.getElementById('select-all-checkbox');
+    const checkboxes = document.querySelectorAll('input[name="participante"]');
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    
+    if (selectAllCheckbox) {
+        selectAllCheckbox.checked = allChecked;
+    }
 }
 
 async function crearPartida(event) {
@@ -294,7 +315,7 @@ async function crearPartida(event) {
     const checkboxes = document.querySelectorAll('input[name="participante"]:checked');
     
     if (checkboxes.length < 2) {
-        mostrarMensaje('❌ Debes seleccionar al menos 2 participantes', 'error');
+        mostrarMensaje('Debes seleccionar al menos 2 participantes', 'error');
         return;
     }
     

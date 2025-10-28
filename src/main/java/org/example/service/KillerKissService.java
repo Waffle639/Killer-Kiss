@@ -78,6 +78,9 @@ public class KillerKissService {
             throw new IllegalArgumentException("Ya existe una partida activa con ese nombre");
         }
 
+        // Establecer fecha de creación
+        partida.setFechaCreacion(java.time.LocalDateTime.now());
+        
         // Mezclar y asignar víctimas
         partida.sortPersonas();
         

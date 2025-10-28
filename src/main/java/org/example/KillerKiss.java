@@ -71,9 +71,7 @@ public class KillerKiss {
         this.estat = false;
         this.ganador = guanyador;
         this.fechaFinalizacion = LocalDateTime.now();
-        if (guanyador != null) {
-            guanyador.sumarVictoria();
-        }
+        // La victoria se suma en el servicio, no aquí
     }
 
     public void sortPersonas() {
@@ -123,5 +121,13 @@ public class KillerKiss {
 
     public void setGanador(Persona ganador) {
         this.ganador = ganador;
+    }
+
+    public void setFechaCreacion(LocalDateTime fechaCreacion) {
+        this.fechaCreacion = fechaCreacion;
+    }
+
+    public void setFechaFinalizacion(LocalDateTime fechaFinalizacion) {
+        this.fechaFinalizacion = fechaFinalizacion;
     }
 }

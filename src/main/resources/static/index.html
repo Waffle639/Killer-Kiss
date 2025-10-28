@@ -68,7 +68,13 @@
                     <form id="form-partida">
                         <input type="text" id="partida-nombre" placeholder="Nombre de la partida" required>
                         <div id="participantes-selector">
-                            <label>Selecciona participantes (mínimo 2):</label>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <label>Selecciona participantes (mínimo 2):</label>
+                                <label class="participante-checkbox" style="margin: 0;">
+                                    <input type="checkbox" id="select-all-checkbox" onchange="toggleSeleccionarTodos()">
+                                    Seleccionar todos
+                                </label>
+                            </div>
                             <div id="lista-participantes">
                                 <!-- Se llenará dinámicamente -->
                             </div>
