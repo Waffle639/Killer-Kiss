@@ -1,5 +1,5 @@
-// URL base de la API
-const API_URL = 'http://localhost:8080/api';
+// URL base de la API (usar ruta relativa para evitar problemas CORS cuando el host cambia)
+const API_URL = '/api';
 
 // Estado global
 let personas = [];
@@ -96,9 +96,12 @@ function mostrarPersonasEnTabla() {
         <tr>
             <td>${persona.id}</td>
             <td>${persona.nom}</td>
-            <td>${persona.mail}</td>
+            <td>${persona.mail ? persona.mail : '<span style="color: red;">❌ Sin email</span>'}</td>
             <td><strong>${persona.victories}</strong></td>
             <td>
+                <button class="btn-action btn-edit" onclick="abrirModalEditarPersona(${persona.id})">
+                    Editar
+                </button>
                 <button class="btn-action btn-delete" onclick="eliminarPersona(${persona.id})">
                     Eliminar
                 </button>
@@ -180,6 +183,83 @@ async function crearPersona(event) {
     } catch (error) {
         console.error('Error:', error);
         mostrarMensaje('Error al crear persona', 'error');
+    }
+}
+
+function abrirModalEditarPersona(id) {
+    const persona = personas.find(p => p.id === id);
+    if (!persona) {
+        mostrarMensaje('Persona no encontrada', 'error');
+        return;
+    }
+    
+    // Crear modal
+    const modal = document.createElement('div');
+    modal.id = 'modal-editar-persona';
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h2>Editar Persona</h2>
+            <form id="form-editar-persona">
+                <div class="form-group">
+                    <label for="editar-nombre">Nombre:</label>
+                    <input type="text" id="editar-nombre" value="${persona.nom}" required>
+                </div>
+                <div class="form-group">
+                    <label for="editar-email">Email:</label>
+                    <input type="email" id="editar-email" value="${persona.mail || ''}" placeholder="email@ejemplo.com">
+                </div>
+                <div class="modal-actions">
+                    <button type="submit" class="btn-action">Guardar</button>
+                    <button type="button" class="btn-action btn-delete" onclick="cerrarModalEditarPersona()">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Agregar evento al formulario
+    document.getElementById('form-editar-persona').addEventListener('submit', (e) => {
+        e.preventDefault();
+        editarPersona(id);
+    });
+}
+
+function cerrarModalEditarPersona() {
+    const modal = document.getElementById('modal-editar-persona');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+async function editarPersona(id) {
+    const nombre = document.getElementById('editar-nombre').value;
+    const email = document.getElementById('editar-email').value;
+    
+    try {
+        const response = await fetch(`${API_URL}/personas/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                nom: nombre,
+                mail: email || null
+            })
+        });
+        
+        if (response.ok) {
+            mostrarMensaje('Persona actualizada correctamente', 'success');
+            cerrarModalEditarPersona();
+            cargarPersonas();
+        } else {
+            const error = await response.json();
+            mostrarMensaje(`Error: ${error.error || 'No se pudo actualizar la persona'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarMensaje('Error al actualizar persona', 'error');
     }
 }
 
@@ -325,6 +405,9 @@ async function crearPartida(event) {
     }));
     
     try {
+        // Mostrar modal de carga
+        mostrarModalCargaCorreos();
+        
         const response = await fetch(`${API_URL}/partidas`, {
             method: 'POST',
             headers: {
@@ -337,14 +420,35 @@ async function crearPartida(event) {
         });
         
         if (response.ok) {
-            mostrarMensaje('Partida creada correctamente. Emails enviados a los participantes!', 'success');
+            const partida = await response.json();
             document.getElementById('form-partida').reset();
             cargarPartidas();
+            
+            // Obtener estadísticas de envío
+            setTimeout(async () => {
+                try {
+                    const statsResponse = await fetch(`${API_URL}/partidas/${partida.id}/enviar-correos`, {
+                        method: 'POST'
+                    });
+                    if (statsResponse.ok) {
+                        const resultado = await statsResponse.json();
+                        mostrarModalResultadoEnvio(resultado);
+                    } else {
+                        cerrarModalCargaCorreos();
+                        mostrarMensaje('✅ Partida creada correctamente!', 'success');
+                    }
+                } catch (e) {
+                    cerrarModalCargaCorreos();
+                    mostrarMensaje('✅ Partida creada correctamente!', 'success');
+                }
+            }, 1000);
         } else {
+            cerrarModalCargaCorreos();
             const error = await response.json();
             mostrarMensaje(`Error: ${error.error || 'No se pudo crear la partida'}`, 'error');
         }
     } catch (error) {
+        cerrarModalCargaCorreos();
         console.error('Error:', error);
         mostrarMensaje('Error al crear partida', 'error');
     }
@@ -451,10 +555,142 @@ function mostrarMensaje(texto, tipo = 'info') {
     }, 5000);
 }
 
+// ========================================
+// ENVÍO DE CORREOS
+// ========================================
+
+async function enviarCorreosPartida(partidaId) {
+    try {
+        // Mostrar mensaje de carga
+        mostrarMensaje('Enviando correos...', 'info');
+        
+        const response = await fetch(`${API_URL}/partidas/${partidaId}/enviar-correos`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (response.ok) {
+            const resultado = await response.json();
+            mostrarModalResultadoEnvio(resultado);
+        } else {
+            const error = await response.json();
+            mostrarMensaje(`Error: ${error.error || 'No se pudieron enviar los correos'}`, 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarMensaje('Error al enviar correos', 'error');
+    }
+}
+
+function mostrarModalResultadoEnvio(resultado) {
+    // Cerrar modal de carga primero
+    cerrarModalCargaCorreos();
+    
+    // Crear modal dinámicamente
+    const modalHtml = `
+        <div id="modal-envio" class="modal" style="display: block;">
+            <div class="modal-content">
+                <span class="close" onclick="cerrarModalEnvio()">&times;</span>
+                <h2>📧 Resultado del Envío de Correos</h2>
+                
+                <div class="envio-resumen">
+                    <div class="envio-stat ${resultado.exitosos > 0 ? 'success' : ''}">
+                        <span class="envio-icon">✅</span>
+                        <div>
+                            <div class="envio-numero">${resultado.exitosos}</div>
+                            <div class="envio-label">Enviados</div>
+                        </div>
+                    </div>
+                    <div class="envio-stat ${resultado.fallidos > 0 ? 'error' : ''}">
+                        <span class="envio-icon">❌</span>
+                        <div>
+                            <div class="envio-numero">${resultado.fallidos}</div>
+                            <div class="envio-label">Fallidos</div>
+                        </div>
+                    </div>
+                    <div class="envio-stat">
+                        <div>
+                            <div class="envio-numero">${resultado.total}</div>
+                            <div class="envio-label">Total</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="envio-detalles">
+                    <h3>Detalles por Participante:</h3>
+                    <div class="envio-lista">
+                        ${resultado.detalles.map(detalle => `
+                            <div class="envio-item ${detalle.exitoso ? 'exitoso' : 'fallido'}">
+                                <div class="envio-item-icon">${detalle.exitoso ? '✅' : '❌'}</div>
+                                <div class="envio-item-info">
+                                    <div class="envio-item-nombre">${detalle.nombre}</div>
+                                    <div class="envio-item-email">${detalle.email}</div>
+                                    <div class="envio-item-mensaje">${detalle.mensaje}</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <div class="modal-buttons">
+                    <button class="btn-cancel" onclick="cerrarModalEnvio()">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Agregar modal al body
+    const modalContainer = document.createElement('div');
+    modalContainer.innerHTML = modalHtml;
+    document.body.appendChild(modalContainer.firstElementChild);
+}
+
+function mostrarModalCargaCorreos() {
+    const modalHtml = `
+        <div id="modal-carga-correos" class="modal" style="display: block;">
+            <div class="modal-content" style="text-align: center;">
+                <h2>Enviando Correos</h2>
+                <div style="margin: 40px 0;">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 20px; font-size: 1.1em; color: #667eea;">
+                        Por favor espera mientras se envían los correos a todos los participantes...
+                    </p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const modalContainer = document.createElement('div');
+    modalContainer.innerHTML = modalHtml;
+    document.body.appendChild(modalContainer.firstElementChild);
+}
+
+function cerrarModalCargaCorreos() {
+    const modal = document.getElementById('modal-carga-correos');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+function cerrarModalEnvio() {
+    const modal = document.getElementById('modal-envio');
+    if (modal) {
+        modal.remove();
+    }
+}
+
 // Cerrar modal al hacer click fuera de él
 window.onclick = function(event) {
     const modal = document.getElementById('modal-finalizar');
+    const modalEnvio = document.getElementById('modal-envio');
+    
     if (event.target === modal) {
         cerrarModal();
+    }
+    
+    if (event.target === modalEnvio) {
+        cerrarModalEnvio();
     }
 }

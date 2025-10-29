@@ -45,14 +45,21 @@ Para que el programa pueda enviar automáticamente los correos con las víctimas
 4. Google te generará una contraseña de 16 caracteres (como `abcd efgh ijkl mnop`).  
    ⚠️ **Guárdala bien**, ya que no se vuelve a mostrar.
 
-### 🛠️ Paso 3: Configura el correo en el código
+### 🛠️ Paso 3: Configura el correo en la aplicación
 
-Abre el archivo Main el cual tiene la funcion enviarCorreu i modifica las siguientes lineas:
+1. En la carpeta `src/main/resources/`, copia el archivo `mail.config.example` y renómbralo a `mail.config`
+2. Abre el archivo `mail.config` y completa los datos:
 
-```java
-final String remitente = "tu-correo@gmail.com"; // Tu cuenta de Gmail
-final String contrasenaApp = "abcd efgh ijkl mnop"; // Contraseña de aplicación
+```properties
+# Contraseña de la base de datos MySQL
+db.password=tu-contraseña-mysql
+
+# Configuración del correo remitente
+mail.remitente=tu-correo@gmail.com
+mail.contrasena=abcd efgh ijkl mnop
 ```
+
+⚠️ **IMPORTANTE**: El archivo `mail.config` ya está en el `.gitignore`, por lo que no se subirá a Git y tus credenciales estarán seguras.
 
 
 ## 📷 Capturas de pantalla

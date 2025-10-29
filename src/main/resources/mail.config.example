@@ -1,0 +1,17 @@
+# Configuración de correo electrónico para Killer Kiss
+# IMPORTANTE: Este es un archivo de EJEMPLO
+# Copia este archivo a 'mail.config' y completa con tus datos reales
+
+# Contraseña de la base de datos MySQL
+db.password=TU_CONTRASEÑA_MYSQL
+
+# Configuración del correo remitente
+mail.remitente=tu-email@gmail.com
+mail.contrasena=tu-contraseña-de-aplicacion
+
+# NOTA: Para Gmail, necesitas generar una "Contraseña de aplicación":
+# 1. Ve a tu cuenta de Google (https://myaccount.google.com/)
+# 2. Seguridad > Verificación en dos pasos (actívala si no está activada)
+# 3. Contraseñas de aplicaciones
+# 4. Genera una nueva para "Correo" y "Otro (nombre personalizado): Killer Kiss"
+# 5. Copia la contraseña de 16 caracteres que te genera

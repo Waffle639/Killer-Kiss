@@ -115,6 +115,27 @@ public class KillerKissController {
     }
 
     /**
+     * POST /api/partidas/{id}/enviar-correos
+     * Envía correos a todos los participantes de una partida.
+     * Retorna un detalle del estado de envío para cada participante.
+     */
+    @PostMapping("/{id}/enviar-correos")
+    public ResponseEntity<?> enviarCorreos(@PathVariable(name = "id") Long id) {
+        try {
+            KillerKiss partida = partidaService.buscarPorId(id)
+                    .orElseThrow(() -> new RuntimeException("Partida no encontrada con ID: " + id));
+
+            KillerKissService.ResultadoEnvioDTO resultado = partidaService.enviarEmailsInicioPartida(partida);
+            return ResponseEntity.ok(resultado);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("Error al enviar correos: " + e.getMessage()));
+        }
+    }
+
+    /**
      * DELETE /api/partidas/{id}
      * Elimina una partida.
      */

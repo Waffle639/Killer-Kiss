@@ -37,5 +37,8 @@ build/
 ### Mac OS ###
 .DS_Store
 
-.properties
+### Configuración sensible ###
+# Archivo con credenciales y contraseñas
+mail.config
+
 *.log

@@ -8,6 +8,7 @@ import org.example.Persona;
 import org.example.repository.KillerKissRepository;
 import org.example.repository.PersonaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,7 +17,8 @@ import java.util.Optional;
 import java.util.Properties;
 
 /**
- * Service que contiene la lógica de negocio para gestionar Partidas de Killer Kiss.
+ * Service que contiene la lógica de negocio para gestionar Partidas de Killer
+ * Kiss.
  */
 @Service
 @Transactional
@@ -30,6 +32,12 @@ public class KillerKissService {
 
     @Autowired
     private PersonaService personaService;
+
+    @Value("${mail.remitente:}")
+    private String mailRemitente;
+
+    @Value("${mail.contrasena:}")
+    private String mailContrasena;
 
     /**
      * Obtiene todas las partidas.
@@ -78,20 +86,28 @@ public class KillerKissService {
             throw new IllegalArgumentException("Ya existe una partida activa con ese nombre");
         }
 
+        // IMPORTANTE: Cargar las personas completas desde la base de datos
+        List<Persona> personasCompletas = new java.util.ArrayList<>();
+        for (Persona p : partida.getPersonas()) {
+            Persona personaCompleta = personaRepository.findById(p.getId())
+                .orElseThrow(() -> new RuntimeException("Persona no encontrada con ID: " + p.getId()));
+            personasCompletas.add(personaCompleta);
+        }
+        partida.setPersonas(personasCompletas);
+
         // Establecer fecha de creación
         partida.setFechaCreacion(java.time.LocalDateTime.now());
-        
+
         // Mezclar y asignar víctimas
         partida.sortPersonas();
-        
+
         // Iniciar la partida
         partida.iniciarPartida();
 
         // Guardar en base de datos
         KillerKiss partidaGuardada = partidaRepository.save(partida);
 
-        // Enviar emails a los participantes
-        enviarEmailsInicioPartida(partidaGuardada);
+        // NO enviar correos aquí - se enviarán desde el endpoint separado después
 
         return partidaGuardada;
     }
@@ -127,9 +143,6 @@ public class KillerKissService {
         // Guardar cambios
         KillerKiss partidaFinalizada = partidaRepository.save(partida);
 
-        // Enviar email de finalización
-        enviarEmailFinalizacion(partidaFinalizada, ganador);
-
         return partidaFinalizada;
     }
 
@@ -156,75 +169,102 @@ public class KillerKissService {
     }
 
     /**
-     * Envía emails a todos los participantes al inicio de la partida.
+     * Envía emails a todos los participantes al inicio de la partida. Retorna
+     * un resumen del estado de envío.
      */
-    private void enviarEmailsInicioPartida(KillerKiss partida) {
-        try {
-            List<Persona> participantes = partida.getPersonas();
-            for (int i = 0; i < participantes.size(); i++) {
-                Persona jugador = participantes.get(i);
-                Persona victima = participantes.get((i + 1) % participantes.size());
+    public ResultadoEnvioDTO enviarEmailsInicioPartida(KillerKiss partida) {
+        ResultadoEnvioDTO resultado = new ResultadoEnvioDTO();
+        List<Persona> participantes = partida.getPersonas();
 
-                String asunto = "¡Partida Killer Kiss: " + partida.getNom() + "!";
-                String mensaje = String.format(
-                    "Hola %s,\n\n" +
-                    "¡Bienvenido a la partida de Killer Kiss!\n\n" +
-                    "Tu víctima es: %s\n" +
-                    "¡Buena suerte!\n\n" +
-                    jugador.getNom(),
-                    victima.getNom()
+        for (int i = 0; i < participantes.size(); i++) {
+            Persona jugador = participantes.get(i);
+            Persona victima = participantes.get((i + 1) % participantes.size());
+
+            if (jugador.getMail() == null || jugador.getMail().isEmpty()) {
+                System.err.println("Jugador sin email: " + (jugador.getNom() != null ? jugador.getNom() : "ID " + jugador.getId()));
+                resultado.agregarResultado(
+                    jugador.getNom() != null ? jugador.getNom() : "Sin nombre", 
+                    "Sin email", 
+                    false, 
+                    "No tiene email"
                 );
-
-                enviarCorreo(jugador.getMail(), asunto, mensaje);
+                continue;
             }
-        } catch (Exception e) {
-            System.err.println("Error al enviar emails de inicio: " + e.getMessage());
-            // No lanzamos excepción para que no falle la creación de la partida
+
+            String nombreJugador = jugador.getNom() != null ? jugador.getNom() : "Jugador";
+            String nombreVictima = victima.getNom() != null ? victima.getNom() : "Desconocido";
+            
+            String asunto = "Partida Killer Kiss: " + partida.getNom();
+            String mensaje = "Hola " + nombreJugador + ",\n\n"
+                    + "Bienvenido a la partida de Killer Kiss!\n\n"
+                    + "Tu victima es: " + nombreVictima + "\n"
+                    + "Buena suerte!";
+
+            boolean enviado = enviarCorreu(jugador.getMail(), mensaje, asunto);
+            resultado.agregarResultado(nombreJugador, jugador.getMail(), enviado,
+                    enviado ? "Enviado correctamente" : "Error al enviar");
         }
+
+        return resultado;
     }
 
     /**
-     * Envía email de finalización de partida.
+     * Método auxiliar para enviar correos electrónicos. Retorna true si se
+     * envió correctamente, false si hubo error.
      */
-    private void enviarEmailFinalizacion(KillerKiss partida, Persona ganador) {
-        try {
-            for (Persona jugador : partida.getPersonas()) {
-                String asunto = "Partida Killer Kiss Finalizada: " + partida.getNom();
-                String mensaje = String.format(
-                    "Hola %s,\n\n" +
-                    "La partida '%s' ha finalizado.\n\n" +
-                    "¡El ganador es: %s!\n\n" +
-                    "Gracias por participar.\n\n" +
-                    "Killer Kiss Team",
-                    jugador.getNom(),
-                    partida.getNom(),
-                    ganador.getNom()
-                );
+    private boolean enviarCorreu(String destinatari, String missatge, String assumpte) {
+        // Usar las credenciales configuradas desde mail.config
+        String remitente = mailRemitente;
+        String contrasena = mailContrasena;
 
-                enviarCorreo(jugador.getMail(), asunto, mensaje);
-            }
-        } catch (Exception e) {
-            System.err.println("Error al enviar emails de finalización: " + e.getMessage());
+        System.out.println("=== DEBUG ENVIO CORREO ===");
+        System.out.println("Destinatario: " + destinatari);
+        System.out.println("Remitente cargado: [" + remitente + "]");
+        System.out.println("Contraseña cargada: " + (contrasena != null ? contrasena.length() + " caracteres" : "NULL"));
+
+        // Validar que las credenciales estén configuradas
+        if (remitente == null || remitente.trim().isEmpty() || contrasena == null || contrasena.trim().isEmpty()) {
+            System.err.println("❌ ERROR: Credenciales de correo no configuradas en mail.config");
+            return false;
         }
-    }
 
-    /**
-     * Método auxiliar para enviar correos electrónicos.
-     */
-    private void enviarCorreo(String destinatario, String asunto, String mensaje) {
-        // TODO: Configurar con tus credenciales SMTP
-        // Por ahora solo imprime en consola
-        System.out.println("===== EMAIL =====");
-        System.out.println("Para: " + destinatario);
-        System.out.println("Asunto: " + asunto);
-        System.out.println("Mensaje: " + mensaje);
-        System.out.println("=================\n");
+        Properties props = new Properties();
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.smtp.host", "smtp.gmail.com");
+        props.put("mail.smtp.port", "587");
+        props.put("mail.smtp.ssl.protocols", "TLSv1.2");
+
+        Session session = Session.getInstance(props, new Authenticator() {
+            @Override
+            protected PasswordAuthentication getPasswordAuthentication() {
+                return new PasswordAuthentication(remitente.trim(), contrasena.trim());
+            }
+        });
+
+        try {
+            Message message = new MimeMessage(session);
+            message.setFrom(new InternetAddress(remitente.trim()));
+            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(destinatari));
+            message.setSubject(assumpte);
+            message.setText(missatge);
+
+            Transport.send(message);
+            System.out.println("✓ Correo enviado a " + destinatari + " correctamente");
+            return true;
+
+        } catch (MessagingException e) {
+            System.err.println("✗ Error al enviar correo a " + destinatari + ": " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
     }
 
     /**
      * Clase interna para devolver estadísticas.
      */
     public static class EstadisticasDTO {
+
         private long totalPartidas;
         private long partidasActivas;
         private long partidasFinalizadas;
@@ -238,9 +278,86 @@ public class KillerKissService {
         }
 
         // Getters
-        public long getTotalPartidas() { return totalPartidas; }
-        public long getPartidasActivas() { return partidasActivas; }
-        public long getPartidasFinalizadas() { return partidasFinalizadas; }
-        public long getTotalJugadores() { return totalJugadores; }
+        public long getTotalPartidas() {
+            return totalPartidas;
+        }
+
+        public long getPartidasActivas() {
+            return partidasActivas;
+        }
+
+        public long getPartidasFinalizadas() {
+            return partidasFinalizadas;
+        }
+
+        public long getTotalJugadores() {
+            return totalJugadores;
+        }
+    }
+
+    /**
+     * Clase interna para devolver resultado de envío de emails.
+     */
+    public static class ResultadoEnvioDTO {
+
+        private List<DetalleEnvio> detalles = new java.util.ArrayList<>();
+        private int exitosos = 0;
+        private int fallidos = 0;
+
+        public void agregarResultado(String nombre, String email, boolean exitoso, String mensaje) {
+            detalles.add(new DetalleEnvio(nombre, email, exitoso, mensaje));
+            if (exitoso) {
+                exitosos++;
+            } else {
+                fallidos++;
+            }
+        }
+
+        public List<DetalleEnvio> getDetalles() {
+            return detalles;
+        }
+
+        public int getExitosos() {
+            return exitosos;
+        }
+
+        public int getFallidos() {
+            return fallidos;
+        }
+
+        public int getTotal() {
+            return exitosos + fallidos;
+        }
+
+        public static class DetalleEnvio {
+
+            private String nombre;
+            private String email;
+            private boolean exitoso;
+            private String mensaje;
+
+            public DetalleEnvio(String nombre, String email, boolean exitoso, String mensaje) {
+                this.nombre = nombre;
+                this.email = email;
+                this.exitoso = exitoso;
+                this.mensaje = mensaje;
+            }
+
+            public String getNombre() {
+                return nombre;
+            }
+
+            public String getEmail() {
+                return email;
+            }
+
+            public boolean isExitoso() {
+                return exitoso;
+            }
+
+            public String getMensaje() {
+                return mensaje;
+            }
+        }
     }
 }
