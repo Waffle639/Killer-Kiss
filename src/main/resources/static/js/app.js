@@ -197,6 +197,7 @@ function abrirModalEditarPersona(id) {
     const modal = document.createElement('div');
     modal.id = 'modal-editar-persona';
     modal.className = 'modal';
+    modal.style.display = 'block'; // Mostrar el modal
     modal.innerHTML = `
         <div class="modal-content">
             <h2>Editar Persona</h2>
@@ -223,6 +224,13 @@ function abrirModalEditarPersona(id) {
     document.getElementById('form-editar-persona').addEventListener('submit', (e) => {
         e.preventDefault();
         editarPersona(id);
+    });
+    
+    // Cerrar modal al hacer clic fuera del contenido
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            cerrarModalEditarPersona();
+        }
     });
 }
 
