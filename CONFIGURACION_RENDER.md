@@ -6,11 +6,18 @@ Para que tu aplicación funcione correctamente en Render, debes configurar las s
 
 ### 1. Base de Datos (PostgreSQL/Supabase)
 
+Configura estas 3 variables en Render:
+
 ```bash
 DATABASE_URL=jdbc:postgresql://aws-1-eu-west-1.pooler.supabase.com:6543/postgres?ssl=true&sslmode=require
+DB_USERNAME=postgres.zldkbsmzelnwsqlglmjc
+DB_PASSWORD=super3
 ```
 
-**IMPORTANTE:** Render añade automáticamente el prefijo `jdbc:` si usas su base de datos PostgreSQL. Si usas Supabase, asegúrate de que la URL comience con `jdbc:postgresql://`
+**IMPORTANTE:**
+- La URL debe empezar con `jdbc:postgresql://` (NO incluir usuario:contraseña en la URL)
+- El usuario y contraseña van en variables separadas
+- Copia estos valores desde tu configuración de Supabase
 
 ### 2. Configuración de Correo (Gmail)
 
