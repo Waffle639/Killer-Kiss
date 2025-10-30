@@ -15,7 +15,7 @@ import java.util.Properties;
 import java.util.Scanner;
 
 @SpringBootApplication
-@org.springframework.context.annotation.PropertySource("classpath:mail.config")
+@org.springframework.context.annotation.PropertySource(value = "classpath:mail.config", ignoreResourceNotFound = true)
 public class Main {
     
     public static void main(String[] args) {
