@@ -1,0 +1,29 @@
+# Ignorar archivos compilados
+target/
+*.class
+*.jar
+*.war
+
+# Ignorar configuración IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Ignorar archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Ignorar archivos Git
+.git/
+.gitignore
+
+# Ignorar archivos sensibles
+mail.config
+*.log
+
+# Ignorar archivos temporales
+*.tmp
+*.bak
+*.swp

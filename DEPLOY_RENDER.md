@@ -1,4 +1,4 @@
-# 🚀 Desplegar Killer-Kiss en Render.com (GRATIS)
+# 🚀 Desplegar Killer-Kiss en Render.com con Docker (GRATIS)
 
 ## 📋 Pre-requisitos
 - Cuenta de GitHub (tu código debe estar en GitHub)
@@ -12,16 +12,16 @@
 ### **1️⃣ Preparar el repositorio**
 
 ✅ Ya tienes todos los archivos necesarios:
-- `render.yaml` - Configuración de Render
-- `render-build.sh` - Script de compilación
-- `application-prod.properties` - Configuración de producción
-- `pom.xml` actualizado con PostgreSQL
+- `Dockerfile` - Para construir la imagen Docker
+- `.dockerignore` - Optimiza el build
+- `application-prod.properties` - Configuración PostgreSQL
+- `pom.xml` - Con dependencia PostgreSQL
 
 **Sube los cambios a GitHub:**
 ```bash
 git add .
-git commit -m "Configuración para deploy en Render"
-git push origin main
+git commit -m "Configuración Docker para Render con PostgreSQL"
+git push origin master
 ```
 
 ---
