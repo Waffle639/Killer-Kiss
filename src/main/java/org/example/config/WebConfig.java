@@ -25,7 +25,9 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addViewControllers(ViewControllerRegistry registry) {
-        // Redirige la raíz "/" a index.html
-        registry.addViewController("/").setViewName("forward:/index.html");
+        // Configuración explícita para que SIEMPRE redirija / a /index.html
+        // Usa redirect en lugar de forward para mayor compatibilidad
+        registry.addViewController("/").setViewName("redirect:/index.html");
+        registry.setOrder(org.springframework.core.Ordered.HIGHEST_PRECEDENCE);
     }
 }
