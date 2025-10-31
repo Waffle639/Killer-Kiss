@@ -33,10 +33,10 @@ public class KillerKissService {
     @Autowired
     private PersonaService personaService;
 
-    @Value("${mail.remitente:}")
+    @Value("${spring.mail.username:${mail.remitente:}}")
     private String mailRemitente;
 
-    @Value("${mail.contrasena:}")
+    @Value("${spring.mail.password:${mail.contrasena:}}")
     private String mailContrasena;
 
     /**
@@ -209,25 +209,10 @@ public class KillerKissService {
     }
 
     /**
-     * Método auxiliar para enviar correos electrónicos. Retorna true si se
-     * envió correctamente, false si hubo error.
+     * Método auxiliar para enviar correos electrónicos.
+     * Retorna true si se envió correctamente, false si hubo error.
      */
     private boolean enviarCorreu(String destinatari, String missatge, String assumpte) {
-        // Usar las credenciales configuradas desde mail.config
-        String remitente = mailRemitente;
-        String contrasena = mailContrasena;
-
-        System.out.println("=== DEBUG ENVIO CORREO ===");
-        System.out.println("Destinatario: " + destinatari);
-        System.out.println("Remitente cargado: [" + remitente + "]");
-        System.out.println("Contraseña cargada: " + (contrasena != null ? contrasena.length() + " caracteres" : "NULL"));
-
-        // Validar que las credenciales estén configuradas
-        if (remitente == null || remitente.trim().isEmpty() || contrasena == null || contrasena.trim().isEmpty()) {
-            System.err.println("❌ ERROR: Credenciales de correo no configuradas en mail.config");
-            return false;
-        }
-
         Properties props = new Properties();
         props.put("mail.smtp.auth", "true");
         props.put("mail.smtp.starttls.enable", "true");
@@ -238,13 +223,13 @@ public class KillerKissService {
         Session session = Session.getInstance(props, new Authenticator() {
             @Override
             protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication(remitente.trim(), contrasena.trim());
+                return new PasswordAuthentication(mailRemitente, mailContrasena);
             }
         });
 
         try {
             Message message = new MimeMessage(session);
-            message.setFrom(new InternetAddress(remitente.trim()));
+            message.setFrom(new InternetAddress(mailRemitente));
             message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(destinatari));
             message.setSubject(assumpte);
             message.setText(missatge);
