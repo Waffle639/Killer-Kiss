@@ -18,8 +18,6 @@ let tabActual = 'personas'; // Tab actual para no recargar si ya estamos ahí
 // ========================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🎯 Killer Kiss iniciado');
-    
     // Cargar datos iniciales
     cargarPersonas();
     cargarPartidas();
@@ -63,7 +61,6 @@ function showTab(tabName, event) {
     // Recargar datos según el tab SOLO si es necesario
     // No recargar si ya estamos en ese tab
     if (tabName === tabActual) {
-        console.log(`Ya estás en la pestaña ${tabName}, no se recargan datos`);
         return;
     }
     
@@ -93,13 +90,11 @@ async function cargarPersonas(forzarRecarga = false) {
         const CACHE_TIEMPO = 30000; // 30 segundos de caché
         
         if (!forzarRecarga && ultimaCargaPersonas && (ahora - ultimaCargaPersonas) < CACHE_TIEMPO && personas.length > 0) {
-            console.log('📦 Usando caché de personas');
             mostrarPersonasEnTabla();
             actualizarSelectorParticipantes();
             return;
         }
         
-        console.log('🌐 Cargando personas desde la API...');
         const response = await fetch(`${API_URL}/personas`);
         
         if (!response.ok) {
@@ -371,13 +366,10 @@ async function cargarPartidas(forzarRecarga = false) {
         
         if (!forzarRecarga && ultimaCargaPartidas && (ahora - ultimaCargaPartidas) < CACHE_TIEMPO && 
             (partidasActivas.length > 0 || partidasFinalizadas.length > 0)) {
-            console.log('📦 Usando caché de partidas');
             mostrarPartidasActivas();
             mostrarPartidasFinalizadas();
             return;
         }
-        
-        console.log('🌐 Cargando partidas desde la API...');
         
         // Cargar partidas activas
         const responseActivas = await fetch(`${API_URL}/partidas/activas`);

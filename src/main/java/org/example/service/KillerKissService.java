@@ -33,10 +33,10 @@ public class KillerKissService {
     @Autowired
     private PersonaService personaService;
 
-    @Value("${mail.remitente:}")
+    @Value("${spring.mail.username:${mail.remitente:}}")
     private String mailRemitente;
 
-    @Value("${mail.contrasena:}")
+    @Value("${spring.mail.password:${mail.contrasena:}}")
     private String mailContrasena;
 
     /**
