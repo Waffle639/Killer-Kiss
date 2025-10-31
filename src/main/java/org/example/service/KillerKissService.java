@@ -1,7 +1,5 @@
 package org.example.service;
 
-import jakarta.mail.*;
-import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import org.example.KillerKiss;
 import org.example.Persona;
@@ -9,12 +7,13 @@ import org.example.repository.KillerKissRepository;
 import org.example.repository.PersonaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.Properties;
 
 /**
  * Service que contiene la lógica de negocio para gestionar Partidas de Killer
@@ -33,11 +32,11 @@ public class KillerKissService {
     @Autowired
     private PersonaService personaService;
 
+    @Autowired
+    private JavaMailSender mailSender;
+
     @Value("${spring.mail.username:${mail.remitente:}}")
     private String mailRemitente;
-
-    @Value("${spring.mail.password:${mail.contrasena:}}")
-    private String mailContrasena;
 
     /**
      * Obtiene todas las partidas.
@@ -209,51 +208,24 @@ public class KillerKissService {
     }
 
     /**
-     * Método auxiliar para enviar correos electrónicos. Retorna true si se
-     * envió correctamente, false si hubo error.
+     * Método auxiliar para enviar correos electrónicos usando JavaMailSender de Spring.
+     * Retorna true si se envió correctamente, false si hubo error.
      */
     private boolean enviarCorreu(String destinatari, String missatge, String assumpte) {
-        // Usar las credenciales configuradas desde mail.config
-        String remitente = mailRemitente;
-        String contrasena = mailContrasena;
-
-        System.out.println("=== DEBUG ENVIO CORREO ===");
-        System.out.println("Destinatario: " + destinatari);
-        System.out.println("Remitente cargado: [" + remitente + "]");
-        System.out.println("Contraseña cargada: " + (contrasena != null ? contrasena.length() + " caracteres" : "NULL"));
-
-        // Validar que las credenciales estén configuradas
-        if (remitente == null || remitente.trim().isEmpty() || contrasena == null || contrasena.trim().isEmpty()) {
-            System.err.println("❌ ERROR: Credenciales de correo no configuradas en mail.config");
-            return false;
-        }
-
-        Properties props = new Properties();
-        props.put("mail.smtp.auth", "true");
-        props.put("mail.smtp.starttls.enable", "true");
-        props.put("mail.smtp.host", "smtp.gmail.com");
-        props.put("mail.smtp.port", "587");
-        props.put("mail.smtp.ssl.protocols", "TLSv1.2");
-
-        Session session = Session.getInstance(props, new Authenticator() {
-            @Override
-            protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication(remitente.trim(), contrasena.trim());
-            }
-        });
-
         try {
-            Message message = new MimeMessage(session);
-            message.setFrom(new InternetAddress(remitente.trim()));
-            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(destinatari));
-            message.setSubject(assumpte);
-            message.setText(missatge);
-
-            Transport.send(message);
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            
+            helper.setFrom(mailRemitente);
+            helper.setTo(destinatari);
+            helper.setSubject(assumpte);
+            helper.setText(missatge, false); // false = texto plano
+            
+            mailSender.send(message);
             System.out.println("✓ Correo enviado a " + destinatari + " correctamente");
             return true;
-
-        } catch (MessagingException e) {
+            
+        } catch (Exception e) {
             System.err.println("✗ Error al enviar correo a " + destinatari + ": " + e.getMessage());
             e.printStackTrace();
             return false;
