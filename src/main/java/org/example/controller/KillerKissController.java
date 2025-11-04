@@ -74,6 +74,20 @@ public class KillerKissController {
     }
 
     /**
+     * GET /api/partidas/emails/contador
+     * Obtiene el contador de emails enviados hoy.
+     */
+    @GetMapping("/emails/contador")
+    public ResponseEntity<?> obtenerContadorEmails() {
+        try {
+            return ResponseEntity.ok(partidaService.getEstadisticasEmails());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("Error al obtener contador de emails: " + e.getMessage()));
+        }
+    }
+
+    /**
      * POST /api/partidas
      * Crea una nueva partida.
      * Body JSON: {"nom":"Partida 1","personas":[{"id":1},{"id":2}]}

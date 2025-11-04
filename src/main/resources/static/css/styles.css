@@ -35,6 +35,7 @@ header {
     color: white;
     padding: 30px;
     text-align: center;
+    position: relative;
 }
 
 header h1 {
@@ -46,6 +47,40 @@ header h1 {
 .subtitle {
     font-size: 1.2em;
     opacity: 0.9;
+}
+
+/* Contador de emails */
+.email-counter {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    padding: 10px 20px;
+    border-radius: 25px;
+    font-weight: bold;
+    font-size: 1.1em;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+}
+
+.email-counter:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+.email-counter span {
+    color: #4ade80;
+    font-weight: bold;
+}
+
+/* Colores según uso */
+.email-counter.warning span {
+    color: #fbbf24;
+}
+
+.email-counter.danger span {
+    color: #f87171;
 }
 
 /* ========================================

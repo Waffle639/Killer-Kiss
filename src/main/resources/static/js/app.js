@@ -16,6 +16,9 @@ document.addEventListener('DOMContentLoaded', () => {
     cargarPersonas();
     TabActual = 'personas';
     
+    // Cargar contador de emails
+    cargarContadorEmails();
+    
     // Event listeners de formularios
     document.getElementById('form-persona').addEventListener('submit', crearPersona);
     document.getElementById('form-partida').addEventListener('submit', crearPartida);
@@ -625,6 +628,8 @@ async function enviarCorreosPartida(partidaId) {
         if (response.ok) {
             const resultado = await response.json();
             mostrarModalResultadoEnvio(resultado);
+            // Actualizar contador de emails
+            await cargarContadorEmails();
         } else {
             const error = await response.json();
             mostrarMensaje(`Error: ${error.error || 'No se pudieron enviar los correos'}`, 'error');
@@ -743,5 +748,39 @@ window.onclick = function(event) {
     
     if (event.target === modalEnvio) {
         cerrarModalEnvio();
+    }
+}
+
+// ========================================
+// CONTADOR DE EMAILS
+// ========================================
+
+async function cargarContadorEmails() {
+    try {
+        const response = await fetch(`${API_URL}/partidas/emails/contador`);
+        if (!response.ok) {
+            console.warn('No se pudo cargar el contador de emails');
+            return;
+        }
+
+        const data = await response.json();
+        const contador = document.getElementById('contador-emails');
+        const emailCounter = document.getElementById('email-counter');
+        
+        if (contador) {
+            contador.textContent = data.formateado || `${data.enviados}/${data.limite}`;
+            
+            // Cambiar color según uso
+            const porcentaje = (data.enviados / data.limite) * 100;
+            emailCounter.classList.remove('warning', 'danger');
+            
+            if (porcentaje >= 90) {
+                emailCounter.classList.add('danger');
+            } else if (porcentaje >= 70) {
+                emailCounter.classList.add('warning');
+            }
+        }
+    } catch (error) {
+        console.error('Error al cargar contador de emails:', error);
     }
 }
