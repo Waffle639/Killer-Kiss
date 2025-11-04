@@ -7,21 +7,14 @@ let partidasActivas = [];
 let partidasFinalizadas = [];
 let partidaSeleccionada = null;
 
-// Control de caché para evitar peticiones innecesarias
-let ultimaCargaPersonas = null;
-let ultimaCargaPartidas = null;
-let ultimaCargaRanking = null;
-let tabActual = 'personas'; // Tab actual para no recargar si ya estamos ahí
-
 // ========================================
 // INICIALIZACIÓN
 // ========================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Cargar datos iniciales
+    // Cargar solo la primera pestaña (personas)
     cargarPersonas();
-    cargarPartidas();
-    cargarEstadisticas();
+    TabActual = 'personas';
     
     // Event listeners de formularios
     document.getElementById('form-persona').addEventListener('submit', crearPersona);
@@ -57,25 +50,21 @@ function showTab(tabName, event) {
             }
         });
     }
-    
-    // Recargar datos según el tab SOLO si es necesario
-    // No recargar si ya estamos en ese tab
-    if (tabName === tabActual) {
-        return;
-    }
-    
-    // Actualizar tab actual
-    tabActual = tabName;
-    
-    // Recargar datos según el tab
-    if (tabName === 'personas') {
-        cargarPersonas();
-    } else if (tabName === 'partidas') {
-        cargarPartidas();
-    } else if (tabName === 'ranking') {
-        cargarRanking();
-    } else if (tabName === 'estadisticas') {
-        cargarEstadisticas();
+    if (tabName !== TabActual) {
+        // Cargar datos según el tab seleccionado
+        if (tabName === 'personas') {
+            cargarPersonas();
+            TabActual = 'personas';
+        } else if (tabName === 'partidas') {
+            cargarPartidas();
+            TabActual = 'partidas';
+        } else if (tabName === 'ranking') {
+            cargarRanking();
+            TabActual = 'ranking';
+        } else if (tabName === 'estadisticas') {
+            cargarEstadisticas();
+            TabActual = 'estadisticas';
+        }
     }
 }
 
@@ -83,18 +72,8 @@ function showTab(tabName, event) {
 // FUNCIONES PERSONAS
 // ========================================
 
-async function cargarPersonas(forzarRecarga = false) {
+async function cargarPersonas() {
     try {
-        // Si ya hay datos y no es recarga forzada, usar caché
-        const ahora = Date.now();
-        const CACHE_TIEMPO = 30000; // 30 segundos de caché
-        
-        if (!forzarRecarga && ultimaCargaPersonas && (ahora - ultimaCargaPersonas) < CACHE_TIEMPO && personas.length > 0) {
-            mostrarPersonasEnTabla();
-            actualizarSelectorParticipantes();
-            return;
-        }
-        
         const response = await fetch(`${API_URL}/personas`);
         
         if (!response.ok) {
@@ -106,7 +85,6 @@ async function cargarPersonas(forzarRecarga = false) {
         // Validar que sea un array
         if (Array.isArray(data)) {
             personas = data;
-            ultimaCargaPersonas = Date.now(); // Actualizar timestamp de caché
         } else {
             console.error('La respuesta no es un array:', data);
             personas = [];
@@ -118,7 +96,7 @@ async function cargarPersonas(forzarRecarga = false) {
     } catch (error) {
         console.error('Error al cargar personas:', error);
         mostrarMensaje('Error al cargar personas', 'error');
-        personas = []; // Asegurar que siempre sea un array
+        personas = [];
     }
 }
 
@@ -233,7 +211,7 @@ async function crearPersona(event) {
         if (response.ok) {
             mostrarMensaje('Persona creada correctamente', 'success');
             document.getElementById('form-persona').reset();
-            cargarPersonas(true); // Forzar recarga para obtener datos actualizados
+            cargarPersonas(); // Forzar recarga para obtener datos actualizados
         } else {
             const error = await response.json();
             mostrarMensaje(`Error: ${error.error || 'No se pudo crear la persona'}`, 'error');
@@ -318,7 +296,7 @@ async function editarPersona(id) {
         if (response.ok) {
             mostrarMensaje('Persona actualizada correctamente', 'success');
             cerrarModalEditarPersona();
-            cargarPersonas(true); // Forzar recarga para obtener datos actualizados
+            cargarPersonas(); // Forzar recarga para obtener datos actualizados
         } else {
             const error = await response.json();
             mostrarMensaje(`Error: ${error.error || 'No se pudo actualizar la persona'}`, 'error');
@@ -341,7 +319,7 @@ async function eliminarPersona(id) {
         
         if (response.ok) {
             mostrarMensaje('Persona eliminada correctamente', 'success');
-            cargarPersonas(true); // Forzar recarga para obtener datos actualizados
+            cargarPersonas(); // Forzar recarga para obtener datos actualizados
         } else {
             // Intentar obtener el mensaje de error del servidor
             const errorData = await response.json();
@@ -358,19 +336,8 @@ async function eliminarPersona(id) {
 // FUNCIONES PARTIDAS
 // ========================================
 
-async function cargarPartidas(forzarRecarga = false) {
+async function cargarPartidas() {
     try {
-        // Si ya hay datos y no es recarga forzada, usar caché
-        const ahora = Date.now();
-        const CACHE_TIEMPO = 30000; // 30 segundos de caché
-        
-        if (!forzarRecarga && ultimaCargaPartidas && (ahora - ultimaCargaPartidas) < CACHE_TIEMPO && 
-            (partidasActivas.length > 0 || partidasFinalizadas.length > 0)) {
-            mostrarPartidasActivas();
-            mostrarPartidasFinalizadas();
-            return;
-        }
-        
         // Cargar partidas activas
         const responseActivas = await fetch(`${API_URL}/partidas/activas`);
         partidasActivas = await responseActivas.json();
@@ -380,8 +347,6 @@ async function cargarPartidas(forzarRecarga = false) {
         const responseFinalizadas = await fetch(`${API_URL}/partidas/finalizadas`);
         partidasFinalizadas = await responseFinalizadas.json();
         mostrarPartidasFinalizadas();
-        
-        ultimaCargaPartidas = Date.now(); // Actualizar timestamp de caché
         
     } catch (error) {
         console.error('Error al cargar partidas:', error);
@@ -508,7 +473,7 @@ async function crearPartida(event) {
         if (response.ok) {
             const partida = await response.json();
             document.getElementById('form-partida').reset();
-            cargarPartidas(true); // Forzar recarga para obtener datos actualizados
+            cargarPartidas(); // Forzar recarga para obtener datos actualizados
             
             // Obtener estadísticas de envío
             setTimeout(async () => {
@@ -576,8 +541,8 @@ async function finalizarPartida(partidaId, ganadorId) {
         if (response.ok) {
             mostrarMensaje('Partida finalizada correctamente!', 'success');
             cerrarModal();
-            cargarPartidas(true); // Forzar recarga para obtener datos actualizados
-            cargarPersonas(true); // Forzar recarga para actualizar victorias
+            cargarPartidas(); // Forzar recarga para obtener datos actualizados
+            cargarPersonas(); // Forzar recarga para actualizar victorias
             cargarEstadisticas();
         } else {
             const error = await response.json();
