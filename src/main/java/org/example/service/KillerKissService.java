@@ -39,7 +39,8 @@ public class KillerKissService {
     @Autowired
     private EmailCounter emailCounter;
 
-    @Value("${spring.mail.username:${mail.remitente:}}")
+    // Email remitente: En producción (SendGrid) usará MAIL_FROM, en local usará mail.remitente
+    @Value("${spring.mail.from:${mail.remitente:}}")
     private String mailRemitente;
 
     /**

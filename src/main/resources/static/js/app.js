@@ -485,8 +485,17 @@ async function crearPartida(event) {
                         method: 'POST'
                     });
                     if (statsResponse.ok) {
-                        const resultado = await statsResponse.json();
+                        const body = await statsResponse.json();
+                        // El backend ahora devuelve { resultado, contador }
+                        const resultado = body.resultado || body;
                         mostrarModalResultadoEnvio(resultado);
+                        // Si viene contador actualizado, actualizar el DOM sin refetch
+                        if (body.contador) {
+                            actualizarContadorEnDOM(body.contador);
+                        } else {
+                            // Fallback: cargar contador normalmente
+                            await cargarContadorEmails();
+                        }
                     } else {
                         cerrarModalCargaCorreos();
                         mostrarMensaje('✅ Partida creada correctamente!', 'success');
@@ -626,10 +635,15 @@ async function enviarCorreosPartida(partidaId) {
         });
         
         if (response.ok) {
-            const resultado = await response.json();
+            const body = await response.json();
+            const resultado = body.resultado || body;
             mostrarModalResultadoEnvio(resultado);
-            // Actualizar contador de emails
-            await cargarContadorEmails();
+            // Actualizar contador desde la respuesta si está disponible, si no, fallback a fetch
+            if (body.contador) {
+                actualizarContadorEnDOM(body.contador);
+            } else {
+                await cargarContadorEmails();
+            }
         } else {
             const error = await response.json();
             mostrarMensaje(`Error: ${error.error || 'No se pudieron enviar los correos'}`, 'error');
@@ -782,5 +796,27 @@ async function cargarContadorEmails() {
         }
     } catch (error) {
         console.error('Error al cargar contador de emails:', error);
+    }
+}
+
+/**
+ * Actualiza el contador de emails en el DOM usando un objeto contador {enviados, limite, formateado}
+ */
+function actualizarContadorEnDOM(contador) {
+    try {
+        const contadorEl = document.getElementById('contador-emails');
+        const emailCounter = document.getElementById('email-counter');
+        if (!contadorEl || !emailCounter) return;
+        contadorEl.textContent = contador.formateado || `${contador.enviados}/${contador.limite}`;
+        // Cambiar color según uso
+        const porcentaje = (contador.enviados / contador.limite) * 100;
+        emailCounter.classList.remove('warning', 'danger');
+        if (porcentaje >= 90) {
+            emailCounter.classList.add('danger');
+        } else if (porcentaje >= 70) {
+            emailCounter.classList.add('warning');
+        }
+    } catch (e) {
+        console.error('Error actualizando contador en DOM:', e);
     }
 }

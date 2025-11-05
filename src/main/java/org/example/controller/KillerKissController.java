@@ -140,7 +140,12 @@ public class KillerKissController {
                     .orElseThrow(() -> new RuntimeException("Partida no encontrada con ID: " + id));
 
             KillerKissService.ResultadoEnvioDTO resultado = partidaService.enviarEmailsInicioPartida(partida);
-            return ResponseEntity.ok(resultado);
+            // Además devolver el contador actualizado para que el frontend pueda sincronizarse inmediatamente
+            Map<String, Object> contador = partidaService.getEstadisticasEmails();
+            Map<String, Object> response = new java.util.HashMap<>();
+            response.put("resultado", resultado);
+            response.put("contador", contador);
+            return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
         } catch (Exception e) {
