@@ -11,6 +11,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.annotation.PostConstruct;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +43,28 @@ public class KillerKissService {
     // Email remitente: En producción (SendGrid) usará MAIL_FROM, en local usará mail.remitente
     @Value("${spring.mail.from:${mail.remitente:}}")
     private String mailRemitente;
+
+    @Value("${spring.mail.host:unknown}")
+    private String mailHost;
+
+    @Value("${spring.mail.port:0}")
+    private int mailPort;
+
+    @Value("${spring.mail.username:unknown}")
+    private String mailUsername;
+
+    @PostConstruct
+    public void init() {
+        System.out.println("\n" + "=".repeat(80));
+        System.out.println("📧 CONFIGURACIÓN EMAIL INICIADA");
+        System.out.println("=".repeat(80));
+        System.out.println("📌 Host: " + mailHost);
+        System.out.println("📌 Puerto: " + mailPort);
+        System.out.println("📌 Usuario: " + mailUsername);
+        System.out.println("📌 Remitente: " + mailRemitente);
+        System.out.println("📌 MailSender configurado: " + (mailSender != null ? "✓ SÍ" : "✗ NO"));
+        System.out.println("=".repeat(80) + "\n");
+    }
 
     /**
      * Obtiene todas las partidas.
@@ -224,20 +247,30 @@ public class KillerKissService {
         }
 
         try {
+            System.out.println("🔧 [DEBUG] Configuración email:");
+            System.out.println("  - Remitente configurado: " + mailRemitente);
+            System.out.println("  - Destinatario: " + destinatari);
+            System.out.println("  - Asunto: " + assumpte);
+            
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(mailRemitente);
             message.setTo(destinatari);
             message.setSubject(assumpte);
             message.setText(missatge);
 
+            System.out.println("📧 [DEBUG] Intentando enviar email vía mailSender...");
             mailSender.send(message);
+            
             emailCounter.incrementar();
             System.out.println("✓ Correo enviado a " + destinatari + " correctamente [" 
                 + emailCounter.getContadorFormateado() + " emails hoy]");
             return true;
 
         } catch (Exception e) {
-            System.err.println("✗ Error al enviar correo a " + destinatari + ": " + e.getMessage());
+            System.err.println("✗ ERROR al enviar correo a " + destinatari);
+            System.err.println("  - Tipo de excepción: " + e.getClass().getName());
+            System.err.println("  - Mensaje: " + e.getMessage());
+            System.err.println("  - Causa raíz: " + (e.getCause() != null ? e.getCause().getMessage() : "N/A"));
             e.printStackTrace();
             return false;
         }
