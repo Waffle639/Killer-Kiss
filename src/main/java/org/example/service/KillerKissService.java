@@ -40,6 +40,9 @@ public class KillerKissService {
     @Autowired
     private EmailCounter emailCounter;
 
+    @Autowired(required = false)
+    private SendGridApiService sendGridApiService;
+
     // Email remitente: En producción (SendGrid) usará MAIL_FROM, en local usará mail.remitente
     @Value("${spring.mail.from:${mail.remitente:}}")
     private String mailRemitente;
@@ -55,14 +58,15 @@ public class KillerKissService {
 
     @PostConstruct
     public void init() {
+        boolean apiDisponible = sendGridApiService != null && sendGridApiService.isConfigured();
         System.out.println("\n" + "=".repeat(80));
         System.out.println("📧 CONFIGURACIÓN EMAIL INICIADA");
         System.out.println("=".repeat(80));
-        System.out.println("📌 Host: " + mailHost);
-        System.out.println("📌 Puerto: " + mailPort);
-        System.out.println("📌 Usuario: " + mailUsername);
+        System.out.println("📌 Modo: " + (apiDisponible ? "SendGrid HTTP API" : "SMTP Tradicional"));
+        System.out.println("📌 Host SMTP: " + mailHost);
+        System.out.println("📌 Puerto SMTP: " + mailPort);
         System.out.println("📌 Remitente: " + mailRemitente);
-        System.out.println("📌 MailSender configurado: " + (mailSender != null ? "✓ SÍ" : "✗ NO"));
+        System.out.println("📌 SendGrid API: " + (apiDisponible ? "✓ ACTIVA" : "✗ NO"));
         System.out.println("=".repeat(80) + "\n");
     }
 
@@ -247,24 +251,30 @@ public class KillerKissService {
         }
 
         try {
-            System.out.println("🔧 [DEBUG] Configuración email:");
-            System.out.println("  - Remitente configurado: " + mailRemitente);
-            System.out.println("  - Destinatario: " + destinatari);
-            System.out.println("  - Asunto: " + assumpte);
+            System.out.println("🔧 [DEBUG] Enviando a: " + destinatari);
+            boolean exito = false;
             
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(mailRemitente);
-            message.setTo(destinatari);
-            message.setSubject(assumpte);
-            message.setText(missatge);
-
-            System.out.println("📧 [DEBUG] Intentando enviar email vía mailSender...");
-            mailSender.send(message);
+            // Intentar primero con SendGrid API si está disponible
+            if (sendGridApiService != null && sendGridApiService.isConfigured()) {
+                System.out.println("📧 Usando SendGrid HTTP API...");
+                exito = sendGridApiService.sendEmail(mailRemitente, destinatari, assumpte, missatge);
+            } else {
+                // Fallback a SMTP
+                System.out.println("📧 Usando SMTP...");
+                SimpleMailMessage message = new SimpleMailMessage();
+                message.setFrom(mailRemitente);
+                message.setTo(destinatari);
+                message.setSubject(assumpte);
+                message.setText(missatge);
+                mailSender.send(message);
+                exito = true;
+            }
             
-            emailCounter.incrementar();
-            System.out.println("✓ Correo enviado a " + destinatari + " correctamente [" 
-                + emailCounter.getContadorFormateado() + " emails hoy]");
-            return true;
+            if (exito) {
+                emailCounter.incrementar();
+                System.out.println("✓ Email enviado [" + emailCounter.getContadorFormateado() + "]");
+            }
+            return exito;
 
         } catch (Exception e) {
             System.err.println("✗ ERROR al enviar correo a " + destinatari);
