@@ -1,0 +1,117 @@
+{
+  "header": {
+    "title": "KILLER KISS",
+    "subtitle": "Panell d'Administració",
+    "logout": "Sortir",
+    "emails": "Correus"
+  },
+  "tabs": {
+    "personas": "👤 Persones",
+    "partidas": "🎯 Partides",
+    "ranking": "🏆 Rànquing",
+    "estadisticas": "📊 Estadístiques"
+  },
+  "personas": {
+    "title": "Gestió de Persones",
+    "addNew": "➕ Afegir Nova Persona",
+    "name": "Nom",
+    "email": "Correu",
+    "addButton": "Desar",
+    "listTitle": "Llistat de Persones",
+    "tableHeaders": {
+      "id": "ID",
+      "name": "NOM",
+      "email": "CORREU",
+      "victories": "VICTÒRIES",
+      "actions": "ACCIONS"
+    },
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "editModal": {
+      "title": "✏️ Editar Persona",
+      "save": "Desar",
+      "cancel": "Cancel·lar"
+    }
+  },
+  "partidas": {
+    "title": "Gestió de Partides",
+    "createNew": "➕ Crear Nova Partida",
+    "gameName": "Nom de la partida",
+    "selectParticipants": "Selecciona participants (mínim 2):",
+    "selectAll": "Seleccionar tots",
+    "createButton": "Crear Partida",
+    "activeGames": "Partides Actives",
+    "finishedGames": "Partides Finalitzades",
+    "resend": "Reenviar",
+    "tableHeaders": {
+      "id": "ID",
+      "name": "NOM",
+      "participants": "PARTICIPANTS",
+      "date": "DATA INICI",
+      "actions": "ACCIONS"
+    },
+    "finishedHeaders": {
+      "winner": "GUANYADOR",
+      "endDate": "DATA FI"
+    },
+    "players": "jugadors",
+    "sendEmails": "📧 Enviar Correus",
+    "finish": "✅ Finalitzar"
+  },
+  "ranking": {
+    "title": "Rànquing de Jugadors",
+    "position": "#",
+    "victories": "🏆 Victòries"
+  },
+  "estadisticas": {
+    "title": "Estadístiques Generals",
+    "totalPersonas": "Total Persones",
+    "totalPartidas": "Total Partides",
+    "partidasActivas": "Partides Actives",
+    "partidasFinalizadas": "Partides Finalitzades",
+    "totalJugadores": "Total Jugadors"
+  },
+  "modal": {
+    "close": "Tancar",
+    "selectWinner": "Finalitzar Partida",
+    "selectWinnerText": "Qui ha guanyat la partida?"
+  },
+  "emailModal": {
+    "title": "📧 Resultat de l'Enviament de Correus",
+    "sent": "Enviats",
+    "failed": "Fallits",
+    "total": "Total",
+    "failedEmails": "❌ Correus Fallits:",
+    "resend": "📧 Reenviar",
+    "pendingEmail": "Correu pendent d'enviament",
+    "sending": "Enviant Correus",
+    "sendingMessage": "Si us plau espera mentre s'envien els correus a tots els participants..."
+  },
+  "messages": {
+    "loading": "Carregant",
+    "noData": "No hi ha dades disponibles",
+    "confirmDelete": "Estàs segur d'eliminar aquesta persona?",
+    "confirmFinish": "Estàs segur de finalitzar aquesta partida?"
+  },
+  "public": {
+    "subtitle": "Rànquing i Partides Actives",
+    "admin": "Admin",
+    "activeGames": "🎯 Partides Actives",
+    "activeGamesTitle": "🎯 Partides Actives",
+    "gameName": "Nom",
+    "players": "Jugadors",
+    "loginTitle": "Accés Administració",
+    "loginSubtitle": "Introdueix les teves credencials",
+    "username": "Usuari",
+    "password": "Contrasenya",
+    "loginButton": "Iniciar Sessió"
+  },
+  "email": {
+    "subject": "Killer Kiss - El teu objectiu",
+    "greeting": "Hola",
+    "intro": "La partida ha començat!",
+    "yourTarget": "El teu objectiu és",
+    "instructions": "Bona sort i que guanyi el millor!",
+    "footer": "Killer Kiss - El joc de l'assassí"
+  }
+}

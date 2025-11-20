@@ -7,11 +7,23 @@ let partidasActivas = [];
 let partidasFinalizadas = [];
 let partidaSeleccionada = null;
 
+// Logout
+function logout() {
+    localStorage.removeItem('authenticated');
+    window.location.href = 'public.html';
+}
+
 // ========================================
 // INICIALIZACIÓN
 // ========================================
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Configurar selector de idioma
+    const langSelector = document.getElementById('language-selector');
+    if (langSelector) {
+        langSelector.value = getCurrentLanguage();
+    }
+    
     // Cargar solo la primera pestaña (personas)
     cargarPersonas();
     TabActual = 'personas';
@@ -365,19 +377,28 @@ function mostrarPartidasActivas() {
         return;
     }
     
-    tbody.innerHTML = partidasActivas.map(partida => `
-        <tr>
-            <td>${partida.id}</td>
-            <td><strong>${partida.nom}</strong></td>
-            <td>${partida.personas.length} jugadores</td>
-            <td>${formatearFecha(partida.fechaCreacion)}</td>
-            <td>
-                <button class="btn-action btn-finish" onclick="abrirModalFinalizar(${partida.id})">
-                    🏆 Finalizar
-                </button>
-            </td>
-        </tr>
-    `).join('');
+    tbody.innerHTML = partidasActivas.map(partida => {
+        const tieneCorreosFallidos = partida.asignaciones && Object.keys(partida.asignaciones).length > 0;
+        
+        return `
+            <tr>
+                <td>${partida.id}</td>
+                <td><strong>${partida.nom}</strong></td>
+                <td>${partida.personas.length} jugadores</td>
+                <td>${formatearFecha(partida.fechaCreacion)}</td>
+                <td>
+                    ${tieneCorreosFallidos ? `
+                        <button class="btn-action btn-reenviar" onclick="mostrarCorreosFallidos(${partida.id})">
+                            📧 Reenviar (${Object.keys(partida.asignaciones).length})
+                        </button>
+                    ` : ''}
+                    <button class="btn-action btn-finish" onclick="abrirModalFinalizar(${partida.id})">
+                        🏆 Finalizar
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
 }
 
 function mostrarPartidasFinalizadas() {
@@ -482,7 +503,9 @@ async function crearPartida(event) {
             setTimeout(async () => {
                 try {
                     const statsResponse = await fetch(`${API_URL}/partidas/${partida.id}/enviar-correos`, {
-                        method: 'POST'
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ idioma: getCurrentLanguage() })
                     });
                     if (statsResponse.ok) {
                         const body = await statsResponse.json();
@@ -631,7 +654,8 @@ async function enviarCorreosPartida(partidaId) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify({ idioma: getCurrentLanguage() })
         });
         
         if (response.ok) {
@@ -661,48 +685,50 @@ function mostrarModalResultadoEnvio(resultado) {
     // Crear modal dinámicamente
     const modalHtml = `
         <div id="modal-envio" class="modal" style="display: block;">
-            <div class="modal-content">
-                <span class="close" onclick="cerrarModalEnvio()">&times;</span>
-                <h2>📧 Resultado del Envío de Correos</h2>
+            <div class="modal-content" style="padding: 20px 30px 30px 30px;">
+                <button class="close-btn" onclick="cerrarModalEnvio()" title="Cerrar">✕</button>
+                <h2 style="margin-top: 5px;">📧 Resultado del Envío de Correos</h2>
                 
                 <div class="envio-resumen">
-                    <div class="envio-stat ${resultado.exitosos > 0 ? 'success' : ''}">
-                        <span class="envio-icon">✅</span>
-                        <div>
-                            <div class="envio-numero">${resultado.exitosos}</div>
-                            <div class="envio-label">Enviados</div>
-                        </div>
+                    <div class="envio-stat-card success">
+                        <div class="envio-icon-large">✅</div>
+                        <div class="envio-numero">${resultado.exitosos}</div>
+                        <div class="envio-label">Enviados</div>
                     </div>
-                    <div class="envio-stat ${resultado.fallidos > 0 ? 'error' : ''}">
-                        <span class="envio-icon">❌</span>
-                        <div>
-                            <div class="envio-numero">${resultado.fallidos}</div>
-                            <div class="envio-label">Fallidos</div>
-                        </div>
+                    <div class="envio-stat-card ${resultado.fallidos > 0 ? 'error' : ''}">
+                        <div class="envio-icon-large">❌</div>
+                        <div class="envio-numero">${resultado.fallidos}</div>
+                        <div class="envio-label">Fallidos</div>
                     </div>
-                    <div class="envio-stat">
-                        <div>
-                            <div class="envio-numero">${resultado.total}</div>
-                            <div class="envio-label">Total</div>
-                        </div>
+                    <div class="envio-stat-card info">
+                        <div class="envio-icon-large">📊</div>
+                        <div class="envio-numero">${resultado.total}</div>
+                        <div class="envio-label">Total</div>
                     </div>
                 </div>
                 
-                <div class="envio-detalles">
-                    <h3>Detalles por Participante:</h3>
-                    <div class="envio-lista">
-                        ${resultado.detalles.map(detalle => `
-                            <div class="envio-item ${detalle.exitoso ? 'exitoso' : 'fallido'}">
-                                <div class="envio-item-icon">${detalle.exitoso ? '✅' : '❌'}</div>
-                                <div class="envio-item-info">
-                                    <div class="envio-item-nombre">${detalle.nombre}</div>
-                                    <div class="envio-item-email">${detalle.email}</div>
-                                    <div class="envio-item-mensaje">${detalle.mensaje}</div>
+                ${resultado.fallidos > 0 ? `
+                    <div class="envio-detalles">
+                        <h3>❌ Correos Fallidos:</h3>
+                        <div class="envio-lista">
+                            ${resultado.detalles.filter(d => !d.exitoso).map(detalle => `
+                                <div class="envio-item fallido">
+                                    <div class="envio-item-icon">❌</div>
+                                    <div class="envio-item-info">
+                                        <div class="envio-item-nombre">${detalle.nombre}</div>
+                                        <div class="envio-item-email">${detalle.email}</div>
+                                        <div class="envio-item-mensaje">${detalle.mensaje}</div>
+                                    </div>
+                                    ${detalle.email !== 'Sin email' ? `
+                                        <button class="btn-reenviar" onclick="reenviarCorreo(${resultado.partidaId}, '${detalle.email}', '${detalle.nombre}')">
+                                            📧 Reenviar
+                                        </button>
+                                    ` : ''}
                                 </div>
-                            </div>
-                        `).join('')}
+                            `).join('')}
+                        </div>
                     </div>
-                </div>
+                ` : ''}
                 
                 <div class="modal-buttons">
                     <button class="btn-cancel" onclick="cerrarModalEnvio()">Cerrar</button>
@@ -818,5 +844,80 @@ function actualizarContadorEnDOM(contador) {
         }
     } catch (e) {
         console.error('Error actualizando contador en DOM:', e);
+    }
+}
+
+/**
+ * Muestra modal con correos fallidos de una partida
+ */
+async function mostrarCorreosFallidos(partidaId) {
+    try {
+        const partida = partidasActivas.find(p => p.id === partidaId);
+        if (!partida || !partida.asignaciones) {
+            mostrarMensaje('No hay correos fallidos', 'info');
+            return;
+        }
+        
+        const asignaciones = partida.asignaciones;
+        const personas = partida.personas;
+        
+        const detalles = Object.entries(asignaciones).map(([emailCazador, emailVictima]) => {
+            const cazador = personas.find(p => p.mail === emailCazador);
+            return {
+                nombre: cazador ? cazador.nom : 'Desconocido',
+                email: emailCazador,
+                exitoso: false,
+                mensaje: 'Correo pendiente de envío'
+            };
+        });
+        
+        const resultado = {
+            partidaId: partidaId,
+            exitosos: 0,
+            fallidos: detalles.length,
+            total: detalles.length,
+            detalles: detalles
+        };
+        
+        mostrarModalResultadoEnvio(resultado);
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarMensaje('Error al cargar correos fallidos', 'error');
+    }
+}
+
+/**
+ * Reenvía el correo a un jugador específico
+ */
+async function reenviarCorreo(partidaId, email, nombre) {
+    if (!confirm(`¿Reenviar correo a ${nombre} (${email})?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_URL}/partidas/${partidaId}/reenviar-email`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email: email })
+        });
+        
+        const resultado = await response.json();
+        
+        if (resultado.exito) {
+            mostrarMensaje(`✅ Correo reenviado correctamente a ${nombre}`, 'success');
+            // Actualizar contador de emails
+            await cargarContadorEmails();
+            // Recargar partidas para actualizar el botón
+            await cargarPartidas();
+            // Cerrar el modal actual
+            cerrarModalEnvio();
+        } else {
+            mostrarMensaje(`❌ Error: ${resultado.mensaje}`, 'error');
+        }
+    } catch (error) {
+        console.error('Error al reenviar correo:', error);
+        mostrarMensaje('Error al reenviar correo', 'error');
     }
 }

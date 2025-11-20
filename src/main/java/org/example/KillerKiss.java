@@ -8,7 +8,9 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Entity
 @Table(name = "partidas")
@@ -45,6 +47,12 @@ public class KillerKiss {
     
     @Column(name = "fecha_finalizacion")
     private LocalDateTime fechaFinalizacion;
+    
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "partida_asignaciones", joinColumns = @JoinColumn(name = "partida_id"))
+    @MapKeyColumn(name = "email_cazador")
+    @Column(name = "email_objetivo")
+    private Map<String, String> asignaciones = new HashMap<>();
 
     public KillerKiss(String nom, List<Persona> personas) {
         this.nom = nom;
@@ -129,5 +137,13 @@ public class KillerKiss {
 
     public void setFechaFinalizacion(LocalDateTime fechaFinalizacion) {
         this.fechaFinalizacion = fechaFinalizacion;
+    }
+    
+    public Map<String, String> getAsignaciones() {
+        return asignaciones;
+    }
+    
+    public void setAsignaciones(Map<String, String> asignaciones) {
+        this.asignaciones = asignaciones;
     }
 }

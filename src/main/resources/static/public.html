@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Killer Kiss - Ranking Público</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="js/i18n.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <!-- Switch de idioma a la izquierda -->
+                <div class="language-switch">
+                    <span class="lang-label" id="lang-ca" onclick="changeLanguage('ca')">CA</span>
+                    <span class="lang-separator">|</span>
+                    <span class="lang-label active" id="lang-es" onclick="changeLanguage('es')">ES</span>
+                </div>
+                
+                <div class="header-center">
+                    <h1 data-i18n="header.title">KILLER KISS</h1>
+                    <p class="subtitle" data-i18n="public.subtitle">Ranking y Partidas Activas</p>
+                </div>
+                
+                <button onclick="showLogin()" class="btn-admin-minimal">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    <span data-i18n="public.admin">Admin</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Tabs públicos -->
+        <div class="tabs">
+            <button class="tab-button active" onclick="showTab('ranking', event)" data-i18n="tabs.ranking">🏆 Ranking</button>
+            <button class="tab-button" onclick="showTab('partidas', event)" data-i18n="public.activeGames">🎯 Partidas Activas</button>
+            <button class="tab-button" onclick="showTab('estadisticas', event)" data-i18n="tabs.estadisticas">📊 Estadísticas</button>
+        </div>
+
+        <!-- TAB: RANKING -->
+        <div id="ranking-tab" class="tab-content active">
+            <div class="section">
+                <h2 data-i18n="ranking.title">🏆 Ranking de Jugadores</h2>
+                <div class="ranking-container">
+                    <div id="ranking-personas">
+                        <!-- Se llenará dinámicamente con JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: PARTIDAS ACTIVAS -->
+        <div id="partidas-tab" class="tab-content">
+            <div class="section">
+                <h2 data-i18n="public.activeGamesTitle">🎯 Partidas Activas</h2>
+                <div class="table-container">
+                    <table id="tabla-partidas-activas">
+                        <thead>
+                            <tr>
+                                <th data-i18n="public.gameName">Nombre</th>
+                                <th data-i18n="public.players">Jugadores</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: ESTADÍSTICAS -->
+        <div id="estadisticas-tab" class="tab-content">
+            <div class="section">
+                <h2 data-i18n="estadisticas.title">📊 Estadísticas Generales</h2>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3 data-i18n="estadisticas.totalPartidas">Total Partidas</h3>
+                        <p id="stat-total-partidas" class="stat-number">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 data-i18n="estadisticas.partidasActivas">Partidas Activas</h3>
+                        <p id="stat-partidas-activas" class="stat-number">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 data-i18n="estadisticas.partidasFinalizadas">Partidas Finalizadas</h3>
+                        <p id="stat-partidas-finalizadas" class="stat-number">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3 data-i18n="estadisticas.totalJugadores">Total Jugadores</h3>
+                        <p id="stat-total-jugadores" class="stat-number">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Login -->
+        <div id="login-modal" class="modal" style="display: none;">
+            <div class="modal-content login-modal">
+                <span class="close" onclick="closeLogin()">&times;</span>
+                <div class="login-header">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    <h2 data-i18n="public.loginTitle">Acceso Administración</h2>
+                    <p data-i18n="public.loginSubtitle">Introduce tus credenciales</p>
+                </div>
+                <form id="form-login">
+                    <div class="input-group">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        <input type="text" id="username" data-i18n="public.username" placeholder="Usuario" required>
+                    </div>
+                    <div class="input-group">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        <input type="password" id="password" data-i18n="public.password" placeholder="Contraseña" required>
+                    </div>
+                    <button type="submit" class="btn-login" data-i18n="public.loginButton">Iniciar Sesión</button>
+                    <p id="login-error" class="login-error"></p>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/public.js"></script>
+</body>
+</html>

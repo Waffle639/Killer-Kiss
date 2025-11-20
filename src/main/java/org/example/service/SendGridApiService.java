@@ -31,7 +31,7 @@ public class SendGridApiService {
         try {
             Email fromEmail = new Email(from);
             Email toEmail = new Email(to);
-            Content content = new Content("text/plain", textContent);
+            Content content = new Content("text/html", textContent);
             Mail mail = new Mail(fromEmail, subject, toEmail, content);
 
             SendGrid sg = new SendGrid(apiKey);

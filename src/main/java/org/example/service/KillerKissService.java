@@ -6,7 +6,6 @@ import org.example.repository.KillerKissRepository;
 import org.example.repository.PersonaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,15 +58,7 @@ public class KillerKissService {
     @PostConstruct
     public void init() {
         boolean apiDisponible = sendGridApiService != null && sendGridApiService.isConfigured();
-        System.out.println("\n" + "=".repeat(80));
-        System.out.println("📧 CONFIGURACIÓN EMAIL INICIADA");
-        System.out.println("=".repeat(80));
-        System.out.println("📌 Modo: " + (apiDisponible ? "SendGrid HTTP API" : "SMTP Tradicional"));
-        System.out.println("📌 Host SMTP: " + mailHost);
-        System.out.println("📌 Puerto SMTP: " + mailPort);
-        System.out.println("📌 Remitente: " + mailRemitente);
-        System.out.println("📌 SendGrid API: " + (apiDisponible ? "✓ ACTIVA" : "✗ NO"));
-        System.out.println("=".repeat(80) + "\n");
+        System.out.println("📧 Email: " + (apiDisponible ? "SendGrid API" : "SMTP") + " - Remitente: " + mailRemitente);
     }
 
     /**
@@ -202,10 +193,12 @@ public class KillerKissService {
     /**
      * Envía emails a todos los participantes al inicio de la partida. Retorna
      * un resumen del estado de envío.
+     * @param idioma El idioma en el que enviar los correos ('es' o 'ca')
      */
-    public ResultadoEnvioDTO enviarEmailsInicioPartida(KillerKiss partida) {
+    public ResultadoEnvioDTO enviarEmailsInicioPartida(KillerKiss partida, String idioma) {
         ResultadoEnvioDTO resultado = new ResultadoEnvioDTO();
         List<Persona> participantes = partida.getPersonas();
+        Map<String, String> asignaciones = new HashMap<>();
 
         for (int i = 0; i < participantes.size(); i++) {
             Persona jugador = participantes.get(i);
@@ -225,18 +218,148 @@ public class KillerKissService {
             String nombreJugador = jugador.getNom() != null ? jugador.getNom() : "Jugador";
             String nombreVictima = victima.getNom() != null ? victima.getNom() : "Desconocido";
             
-            String asunto = "Partida Killer Kiss: " + partida.getNom();
-            String mensaje = "Hola " + nombreJugador + ",\n\n"
-                    + "Bienvenido a la partida de Killer Kiss!\n\n"
-                    + "Tu victima es: " + nombreVictima + "\n"
-                    + "Buena suerte!";
+            // Construir mensaje HTML según idioma recibido como parámetro
+            String asunto, mensaje;
+            if ("ca".equals(idioma)) {
+                asunto = "Killer Kiss - El teu objectiu";
+                mensaje = "<!DOCTYPE html>"
+                        + "<html lang='ca'>"
+                        + "<head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'></head>"
+                        + "<body style='margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;'>"
+                        + "<div style='max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);'>"
+                        + "<div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center;'>"
+                        + "<h1 style='margin: 0; font-size: 28px; letter-spacing: 1px;'>💋 KILLER KISS</h1>"
+                        + "<p style='margin: 10px 0 0 0; font-size: 14px; opacity: 0.9;'>El joc de l'assassí</p>"
+                        + "</div>"
+                        + "<div style='padding: 40px 30px;'>"
+                        + "<p style='font-size: 16px; color: #333; margin: 0 0 20px 0;'>Hola <strong>" + nombreJugador + "</strong>,</p>"
+                        + "<div style='background-color: #f8f9fa; border-left: 4px solid #667eea; padding: 20px; margin: 20px 0; border-radius: 4px;'>"
+                        + "<p style='margin: 0 0 10px 0; color: #555; font-size: 14px;'>🎯 La partida ha començat!</p>"
+                        + "<p style='margin: 0; font-size: 18px; color: #333;'><strong>El teu objectiu és:</strong></p>"
+                        + "<p style='margin: 10px 0 0 0; font-size: 24px; color: #667eea; font-weight: bold;'>" + nombreVictima + "</p>"
+                        + "</div>"
+                        + "<p style='font-size: 15px; color: #666; margin: 20px 0 0 0; line-height: 1.6;'>Bona sort i que guanyi el millor! 🍀</p>"
+                        + "</div>"
+                        + "<div style='background-color: #f8f9fa; padding: 20px; text-align: center; color: #999; font-size: 12px;'>"
+                        + "<p style='margin: 0;'>Killer Kiss - El joc de l'assassí</p>"
+                        + "</div>"
+                        + "</div>"
+                        + "</body>"
+                        + "</html>";
+            } else {
+                asunto = "Killer Kiss - Tu objetivo";
+                mensaje = "<!DOCTYPE html>"
+                        + "<html lang='es'>"
+                        + "<head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0'></head>"
+                        + "<body style='margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;'>"
+                        + "<div style='max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);'>"
+                        + "<div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center;'>"
+                        + "<h1 style='margin: 0; font-size: 28px; letter-spacing: 1px;'>💋 KILLER KISS</h1>"
+                        + "<p style='margin: 10px 0 0 0; font-size: 14px; opacity: 0.9;'>El juego del asesino</p>"
+                        + "</div>"
+                        + "<div style='padding: 40px 30px;'>"
+                        + "<p style='font-size: 16px; color: #333; margin: 0 0 20px 0;'>Hola <strong>" + nombreJugador + "</strong>,</p>"
+                        + "<div style='background-color: #f8f9fa; border-left: 4px solid #667eea; padding: 20px; margin: 20px 0; border-radius: 4px;'>"
+                        + "<p style='margin: 0 0 10px 0; color: #555; font-size: 14px;'>🎯 ¡La partida ha comenzado!</p>"
+                        + "<p style='margin: 0; font-size: 18px; color: #333;'><strong>Tu objetivo es:</strong></p>"
+                        + "<p style='margin: 10px 0 0 0; font-size: 24px; color: #667eea; font-weight: bold;'>" + nombreVictima + "</p>"
+                        + "</div>"
+                        + "<p style='font-size: 15px; color: #666; margin: 20px 0 0 0; line-height: 1.6;'>¡Buena suerte y que gane el mejor! 🍀</p>"
+                        + "</div>"
+                        + "<div style='background-color: #f8f9fa; padding: 20px; text-align: center; color: #999; font-size: 12px;'>"
+                        + "<p style='margin: 0;'>Killer Kiss - El juego del asesino</p>"
+                        + "</div>"
+                        + "</div>"
+                        + "</body>"
+                        + "</html>";
+            }
 
             boolean enviado = enviarCorreu(jugador.getMail(), mensaje, asunto);
+            
+            // Solo guardar asignación si el correo falló (para poder reenviar después)
+            if (!enviado) {
+                asignaciones.put(jugador.getMail(), victima.getMail());
+            }
+            
             resultado.agregarResultado(nombreJugador, jugador.getMail(), enviado,
                     enviado ? "Enviado correctamente" : "Error al enviar");
         }
 
+        // Guardar solo las asignaciones de correos fallidos en la partida
+        partida.setAsignaciones(asignaciones);
+        partidaRepository.save(partida);
+        
+        resultado.setPartidaId(partida.getId());
+
         return resultado;
+    }
+    
+    /**
+     * Reenvía el correo a un jugador específico de una partida activa.
+     */
+    public Map<String, Object> reenviarCorreoJugador(Long partidaId, String emailJugador) {
+        Map<String, Object> respuesta = new HashMap<>();
+        
+        Optional<KillerKiss> partidaOpt = partidaRepository.findById(partidaId);
+        if (partidaOpt.isEmpty()) {
+            respuesta.put("exito", false);
+            respuesta.put("mensaje", "Partida no encontrada");
+            return respuesta;
+        }
+        
+        KillerKiss partida = partidaOpt.get();
+        
+        // Verificar que la partida tiene asignaciones guardadas
+        if (partida.getAsignaciones() == null || partida.getAsignaciones().isEmpty()) {
+            respuesta.put("exito", false);
+            respuesta.put("mensaje", "La partida no tiene asignaciones guardadas");
+            return respuesta;
+        }
+        
+        // Obtener email del objetivo
+        String emailObjetivo = partida.getAsignaciones().get(emailJugador);
+        if (emailObjetivo == null) {
+            respuesta.put("exito", false);
+            respuesta.put("mensaje", "No se encontró asignación para este jugador");
+            return respuesta;
+        }
+        
+        // Buscar personas
+        Optional<Persona> jugadorOpt = personaRepository.findByMail(emailJugador);
+        Optional<Persona> objetivoOpt = personaRepository.findByMail(emailObjetivo);
+        
+        if (jugadorOpt.isEmpty() || objetivoOpt.isEmpty()) {
+            respuesta.put("exito", false);
+            respuesta.put("mensaje", "Jugador u objetivo no encontrado");
+            return respuesta;
+        }
+        
+        Persona jugador = jugadorOpt.get();
+        Persona objetivo = objetivoOpt.get();
+        
+        String nombreJugador = jugador.getNom() != null ? jugador.getNom() : "Jugador";
+        String nombreObjetivo = objetivo.getNom() != null ? objetivo.getNom() : "Desconocido";
+        
+        String asunto = "Partida Killer Kiss: " + partida.getNom();
+        String mensaje = "Hola " + nombreJugador + ",\n\n"
+                + "Bienvenido a la partida de Killer Kiss!\n\n"
+                + "Tu victima es: " + nombreObjetivo + "\n"
+                + "Buena suerte!";
+        
+        boolean enviado = enviarCorreu(emailJugador, mensaje, asunto);
+        
+        // Si se envió correctamente, eliminar la asignación del mapa
+        if (enviado) {
+            partida.getAsignaciones().remove(emailJugador);
+            partidaRepository.save(partida);
+        }
+        
+        respuesta.put("exito", enviado);
+        respuesta.put("mensaje", enviado ? "Correo reenviado correctamente" : "Error al reenviar correo");
+        respuesta.put("jugador", nombreJugador);
+        respuesta.put("email", emailJugador);
+        
+        return respuesta;
     }
 
     /**
@@ -249,38 +372,58 @@ public class KillerKissService {
             System.err.println("✗ Límite diario de emails alcanzado (" + emailCounter.getLimiteDiario() + ")");
             return false;
         }
+        
+        // Validación básica del email
+        if (destinatari == null || destinatari.trim().isEmpty()) {
+            System.err.println("✗ Email vacío o nulo");
+            return false;
+        }
+        
+        String emailTrimmed = destinatari.trim();
+        
+        // Validación de formato básico de email
+        if (!emailTrimmed.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
+            System.err.println("✗ Email con formato inválido: " + emailTrimmed);
+            return false;
+        }
 
         try {
-            System.out.println("🔧 [DEBUG] Enviando a: " + destinatari);
             boolean exito = false;
             
-            // Intentar primero con SendGrid API si está disponible
             if (sendGridApiService != null && sendGridApiService.isConfigured()) {
-                System.out.println("📧 Usando SendGrid HTTP API...");
+                // SendGrid API devuelve true/false según el resultado real
                 exito = sendGridApiService.sendEmail(mailRemitente, destinatari, assumpte, missatge);
+                if (exito) {
+                    System.out.println("✓ Email enviado via SendGrid a " + destinatari);
+                } else {
+                    System.err.println("✗ SendGrid rechazó el email a " + destinatari);
+                }
             } else {
-                // Fallback a SMTP
-                System.out.println("📧 Usando SMTP...");
-                SimpleMailMessage message = new SimpleMailMessage();
-                message.setFrom(mailRemitente);
-                message.setTo(destinatari);
-                message.setSubject(assumpte);
-                message.setText(missatge);
-                mailSender.send(message);
-                exito = true;
+                // SMTP - intentar enviar y capturar cualquier error
+                try {
+                    jakarta.mail.internet.MimeMessage mimeMessage = mailSender.createMimeMessage();
+                    org.springframework.mail.javamail.MimeMessageHelper helper = 
+                        new org.springframework.mail.javamail.MimeMessageHelper(mimeMessage, true, "UTF-8");
+                    helper.setFrom(mailRemitente);
+                    helper.setTo(destinatari);
+                    helper.setSubject(assumpte);
+                    helper.setText(missatge, true); // true = HTML
+                    mailSender.send(mimeMessage);
+                    exito = true;
+                    System.out.println("✓ Email enviado via SMTP a " + destinatari);
+                } catch (org.springframework.mail.MailException | jakarta.mail.MessagingException e) {
+                    System.err.println("✗ Error SMTP enviando a " + destinatari + ": " + e.getMessage());
+                    exito = false;
+                }
             }
             
             if (exito) {
                 emailCounter.incrementar();
-                System.out.println("✓ Email enviado [" + emailCounter.getContadorFormateado() + "]");
             }
             return exito;
 
         } catch (Exception e) {
-            System.err.println("✗ ERROR al enviar correo a " + destinatari);
-            System.err.println("  - Tipo de excepción: " + e.getClass().getName());
-            System.err.println("  - Mensaje: " + e.getMessage());
-            System.err.println("  - Causa raíz: " + (e.getCause() != null ? e.getCause().getMessage() : "N/A"));
+            System.err.println("✗ Error inesperado enviando email a " + destinatari + ": " + e.getMessage());
             e.printStackTrace();
             return false;
         }
@@ -344,6 +487,7 @@ public class KillerKissService {
      */
     public static class ResultadoEnvioDTO {
 
+        private Long partidaId;
         private List<DetalleEnvio> detalles = new java.util.ArrayList<>();
         private int exitosos = 0;
         private int fallidos = 0;
@@ -355,6 +499,14 @@ public class KillerKissService {
             } else {
                 fallidos++;
             }
+        }
+        
+        public void setPartidaId(Long partidaId) {
+            this.partidaId = partidaId;
+        }
+        
+        public Long getPartidaId() {
+            return partidaId;
         }
 
         public List<DetalleEnvio> getDetalles() {

@@ -132,14 +132,18 @@ public class KillerKissController {
      * POST /api/partidas/{id}/enviar-correos
      * Envía correos a todos los participantes de una partida.
      * Retorna un detalle del estado de envío para cada participante.
+     * Recibe el idioma en el body del request.
      */
     @PostMapping("/{id}/enviar-correos")
-    public ResponseEntity<?> enviarCorreos(@PathVariable(name = "id") Long id) {
+    public ResponseEntity<?> enviarCorreos(@PathVariable(name = "id") Long id, @RequestBody(required = false) Map<String, String> body) {
         try {
             KillerKiss partida = partidaService.buscarPorId(id)
                     .orElseThrow(() -> new RuntimeException("Partida no encontrada con ID: " + id));
 
-            KillerKissService.ResultadoEnvioDTO resultado = partidaService.enviarEmailsInicioPartida(partida);
+            // Obtener idioma del body, por defecto español
+            String idioma = (body != null && body.containsKey("idioma")) ? body.get("idioma") : "es";
+            
+            KillerKissService.ResultadoEnvioDTO resultado = partidaService.enviarEmailsInicioPartida(partida, idioma);
             // Además devolver el contador actualizado para que el frontend pueda sincronizarse inmediatamente
             Map<String, Object> contador = partidaService.getEstadisticasEmails();
             Map<String, Object> response = new java.util.HashMap<>();
@@ -151,6 +155,33 @@ public class KillerKissController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(new ErrorResponse("Error al enviar correos: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * POST /api/partidas/{id}/reenviar-email
+     * Reenvía el correo a un jugador específico de una partida.
+     */
+    @PostMapping("/{id}/reenviar-email")
+    public ResponseEntity<?> reenviarEmail(
+            @PathVariable(name = "id") Long id,
+            @RequestBody Map<String, String> body) {
+        try {
+            String email = body.get("email");
+            if (email == null || email.isEmpty()) {
+                return ResponseEntity.badRequest().body(new ErrorResponse("Email es requerido"));
+            }
+            
+            Map<String, Object> resultado = partidaService.reenviarCorreoJugador(id, email);
+            
+            if ((Boolean) resultado.get("exito")) {
+                return ResponseEntity.ok(resultado);
+            } else {
+                return ResponseEntity.badRequest().body(resultado);
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("Error al reenviar correo: " + e.getMessage()));
         }
     }
 

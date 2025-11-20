@@ -3,53 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Killer Kiss - Gestión de Partidas</title>
+    <title>Killer Kiss - Administración</title>
     <link rel="stylesheet" href="css/styles.css">
+    <script src="js/i18n.js"></script>
+    <script>
+        // Verificar autenticación
+        if (!localStorage.getItem('authenticated')) {
+            window.location.href = 'public.html';
+        }
+    </script>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>KILLER KISS</h1>
-            <p class="subtitle">Sistema de Gestión de Partidas</p>
-            <div id="email-counter" class="email-counter">
-                Emails: <span id="contador-emails">0/100</span>
+            <div class="header-content">
+                <!-- Switch de idioma a la izquierda -->
+                <div class="language-switch">
+                    <span class="lang-label" id="lang-ca" onclick="changeLanguage('ca')">CA</span>
+                    <span class="lang-separator">|</span>
+                    <span class="lang-label active" id="lang-es" onclick="changeLanguage('es')">ES</span>
+                </div>
+                
+                <div class="header-center">
+                    <h1 data-i18n="header.title">KILLER KISS</h1>
+                    <p class="subtitle" data-i18n="header.subtitle">Panel de Administración</p>
+                </div>
+                
+                <div class="header-actions">
+                    <div id="email-counter" class="email-counter">
+                        <span data-i18n="header.emails">Emails</span>: <span id="contador-emails">0/100</span>
+                    </div>
+                    <button onclick="logout()" class="btn-logout">🚪 <span data-i18n="header.logout">Salir</span></button>
+                </div>
             </div>
         </header>
 
         <!-- Tabs de navegación -->
         <div class="tabs">
-            <button class="tab-button active" onclick="showTab('personas', event)">👥 Personas</button>
-            <button class="tab-button" onclick="showTab('partidas', event)">🎯 Partidas</button>
-            <button class="tab-button" onclick="showTab('ranking', event)">🏆 Ranking</button>
-            <button class="tab-button" onclick="showTab('estadisticas', event)">📊 Estadísticas</button>
+            <button class="tab-button active" onclick="showTab('personas', event)" data-i18n="tabs.personas">👥 Personas</button>
+            <button class="tab-button" onclick="showTab('partidas', event)" data-i18n="tabs.partidas">🎯 Partidas</button>
+            <button class="tab-button" onclick="showTab('ranking', event)" data-i18n="tabs.ranking">🏆 Ranking</button>
+            <button class="tab-button" onclick="showTab('estadisticas', event)" data-i18n="tabs.estadisticas">📊 Estadísticas</button>
         </div>
 
         <!-- TAB: PERSONAS -->
         <div id="personas-tab" class="tab-content active">
             <div class="section">
-                <h2>Gestión de Personas</h2>
+                <h2 data-i18n="personas.title">Gestión de Personas</h2>
                 
                 <!-- Formulario añadir persona -->
                 <div class="form-container">
-                    <h3>➕ Añadir Nueva Persona</h3>
+                    <h3 data-i18n="personas.addNew">➕ Añadir Nueva Persona</h3>
                     <form id="form-persona">
-                        <input type="text" id="persona-nombre" placeholder="Nombre" required>
-                        <input type="email" id="persona-email" placeholder="Email" required>
-                        <button type="submit" class="btn-primary">Guardar</button>
+                        <input type="text" id="persona-nombre" data-i18n="personas.name" placeholder="Nombre" required>
+                        <input type="email" id="persona-email" data-i18n="personas.email" placeholder="Email" required>
+                        <button type="submit" class="btn-primary" data-i18n="personas.addButton">Guardar</button>
                     </form>
                 </div>
 
                 <!-- Listado de personas -->
                 <div class="table-container">
-                    <h3>Listado de Personas</h3>
+                    <h3 data-i18n="personas.listTitle">Listado de Personas</h3>
                     <table id="tabla-personas">
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>Nombre</th>
-                                <th>Email</th>
-                                <th>Victorias</th>
-                                <th>Acciones</th>
+                                <th data-i18n="personas.tableHeaders.id">ID</th>
+                                <th data-i18n="personas.tableHeaders.name">NOMBRE</th>
+                                <th data-i18n="personas.tableHeaders.email">EMAIL</th>
+                                <th data-i18n="personas.tableHeaders.victories">VICTORIAS</th>
+                                <th data-i18n="personas.tableHeaders.actions">ACCIONES</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -63,40 +85,40 @@
         <!-- TAB: PARTIDAS -->
         <div id="partidas-tab" class="tab-content">
             <div class="section">
-                <h2>Gestión de Partidas</h2>
+                <h2 data-i18n="partidas.title">Gestión de Partidas</h2>
 
                 <!-- Formulario crear partida -->
                 <div class="form-container">
-                    <h3>➕ Crear Nueva Partida</h3>
+                    <h3 data-i18n="partidas.createNew">➕ Crear Nueva Partida</h3>
                     <form id="form-partida">
-                        <input type="text" id="partida-nombre" placeholder="Nombre de la partida" required>
+                        <input type="text" id="partida-nombre" data-i18n="partidas.gameName" placeholder="Nombre de la partida" required>
                         <div id="participantes-selector">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                <label>Selecciona participantes (mínimo 2):</label>
+                                <label data-i18n="partidas.selectParticipants">Selecciona participantes (mínimo 2):</label>
                                 <label class="participante-checkbox" style="margin: 0;">
                                     <input type="checkbox" id="select-all-checkbox" onchange="toggleSeleccionarTodos()">
-                                    Seleccionar todos
+                                    <span data-i18n="partidas.selectAll">Seleccionar todos</span>
                                 </label>
                             </div>
                             <div id="lista-participantes">
                                 <!-- Se llenará dinámicamente -->
                             </div>
                         </div>
-                        <button type="submit" class="btn-primary">Crear Partida</button>
+                        <button type="submit" class="btn-primary" data-i18n="partidas.createButton">Crear Partida</button>
                     </form>
                 </div>
 
                 <!-- Partidas activas -->
                 <div class="table-container">
-                    <h3>Partidas Activas</h3>
+                    <h3 data-i18n="partidas.activeGames">Partidas Activas</h3>
                     <table id="tabla-partidas-activas">
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>Nombre</th>
-                                <th>Participantes</th>
-                                <th>Fecha Inicio</th>
-                                <th>Acciones</th>
+                                <th data-i18n="partidas.tableHeaders.id">ID</th>
+                                <th data-i18n="partidas.tableHeaders.name">NOMBRE</th>
+                                <th data-i18n="partidas.tableHeaders.participants">PARTICIPANTES</th>
+                                <th data-i18n="partidas.tableHeaders.date">FECHA INICIO</th>
+                                <th data-i18n="partidas.tableHeaders.actions">ACCIONES</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -107,14 +129,14 @@
 
                 <!-- Partidas finalizadas -->
                 <div class="table-container">
-                    <h3>Partidas Finalizadas</h3>
+                    <h3 data-i18n="partidas.finishedGames">Partidas Finalizadas</h3>
                     <table id="tabla-partidas-finalizadas">
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>Nombre</th>
-                                <th>Ganador</th>
-                                <th>Fecha Fin</th>
+                                <th data-i18n="partidas.tableHeaders.id">ID</th>
+                                <th data-i18n="partidas.tableHeaders.name">NOMBRE</th>
+                                <th data-i18n="partidas.finishedHeaders.winner">GANADOR</th>
+                                <th data-i18n="partidas.finishedHeaders.endDate">FECHA FIN</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -128,7 +150,7 @@
         <!-- TAB: RANKING -->
         <div id="ranking-tab" class="tab-content">
             <div class="section">
-                <h2>Ranking de Victorias</h2>
+                <h2 data-i18n="ranking.title">Ranking de Jugadores</h2>
                 
                 <div class="ranking-container">
                     <div id="ranking-personas">
@@ -141,23 +163,23 @@
         <!-- TAB: ESTADÍSTICAS -->
         <div id="estadisticas-tab" class="tab-content">
             <div class="section">
-                <h2>Estadísticas Generales</h2>
+                <h2 data-i18n="estadisticas.title">Estadísticas Generales</h2>
                 
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <h3>Total Partidas</h3>
+                        <h3 data-i18n="estadisticas.totalPartidas">Total Partidas</h3>
                         <p id="stat-total-partidas" class="stat-number">0</p>
                     </div>
                     <div class="stat-card">
-                        <h3>Partidas Activas</h3>
+                        <h3 data-i18n="estadisticas.partidasActivas">Partidas Activas</h3>
                         <p id="stat-partidas-activas" class="stat-number">0</p>
                     </div>
                     <div class="stat-card">
-                        <h3>Partidas Finalizadas</h3>
+                        <h3 data-i18n="estadisticas.partidasFinalizadas">Partidas Finalizadas</h3>
                         <p id="stat-partidas-finalizadas" class="stat-number">0</p>
                     </div>
                     <div class="stat-card">
-                        <h3>Total Jugadores</h3>
+                        <h3 data-i18n="estadisticas.totalJugadores">Total Jugadores</h3>
                         <p id="stat-total-jugadores" class="stat-number">0</p>
                     </div>
                 </div>
@@ -169,8 +191,8 @@
     <div id="modal-finalizar" class="modal">
         <div class="modal-content">
             <span class="close" onclick="cerrarModal()">&times;</span>
-            <h2>Finalizar Partida</h2>
-            <p>Selecciona el ganador:</p>
+            <h2 data-i18n="modal.selectWinner">Seleccionar Ganador</h2>
+            <p data-i18n="modal.selectWinnerText">¿Quién ha ganado la partida?</p>
             <div id="modal-ganadores-lista">
                 <!-- Se llenará dinámicamente -->
             </div>
