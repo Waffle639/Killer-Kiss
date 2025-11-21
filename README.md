@@ -1,68 +1,76 @@
-# 💋 Killer Kiss
+# Killer Kiss
 
-**Killer Kiss** es un juego en el que cada jugador recibe por correo electrónico el nombre de su víctima. El objetivo: Eliminar a todos los participantes con un beso simbólico, ¡sin que ningún otro jugador vivo te vea! 😏
+Killer Kiss es un juego donde cada jugador recibe por email el nombre de su víctima. El objetivo es eliminar a tu víctima con un beso sin que nadie te vea.
 
----
+## Cómo funciona
 
-## 🕹️ Características
+1. Se crea una partida con una lista de jugadores
+2. Cada jugador recibe un email con el nombre de su víctima
+3. Cuando eliminas a alguien, heredas su objetivo
+4. Gana el último jugador que quede vivo
 
-- 📧 Envío automático de correos con la víctima asignada.
-- 🔄 Generación de un círculo cerrado de asesinos y víctimas.
-- 💾 Gestión y almacenamiento de datos: jugadores, partidas y resultados.
-- 🏆 Sistema de ranking según las partidas ganadas y jugadas.
-- 🔐 Validación y control de errores (duplicados, listas vacías, etc).
+## Tecnologías
 
----
+**Backend:**
+- Java 17
+- Spring Boot 3.2.0 (REST API)
+- Hibernate (JPA)
+- PostgreSQL (Supabase)
+- SendGrid API (envío de emails)
 
-## 📝 Cómo jugar
+**Frontend:**
+- HTML/CSS/JavaScript
+- Sistema i18n (catalán/español)
 
-1. El juego empieza con una lista de jugadores (nombres + correos).
-2. El sistema genera aleatoriamente un círculo cerrado de asesinatos.
-3. Cada jugador recibe por correo el nombre de su víctima.
-4. Los jugadores deben matar a su víctima con un beso simbólico sin ser vistos por otro jugador vivo.
-5. Al matar a un jugador passas a matar al objetivo de la persona que has matado.
-6. El ranking muestra quiénes han ganado más partidas.
+**Deploy:**
+- Render.com (hosting)
+- Docker (containerización)
 
----
+## Funcionalidades
 
-## 📧 Cómo configurar el envío de correos (Gmail)
+- Panel de administración para gestionar jugadores y partidas
+- Envío automático de emails en HTML
+- Ranking de jugadores
+- Estadísticas de partidas
+- Soporte multiidioma (CA/ES)
+- Vista pública con ranking en tiempo real
 
-Para que el programa pueda enviar automáticamente los correos con las víctimas asignadas, necesitas configurar tu cuenta de Gmail con una **contraseña de aplicación**.
+## Configuración
 
-### 🔒 Paso 1: Activa la verificación en dos pasos
+### Base de datos
 
-1. Accede a tu cuenta de Google:  
-   👉 [https://myaccount.google.com/security](https://myaccount.google.com/security)
-2. Activa la **verificación en dos pasos** si aún no lo has hecho.
-
-### 🔐 Paso 2: Genera una contraseña de aplicación
-
-1. Ve a 👉 [https://myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
-2. Si no te deja entrar, asegúrate de tener activada la verificación en dos pasos.
-3. En el menú:
-   - Selecciona **Correo** como aplicación.
-   - Elige **Otro** y ponle un nombre como `killer-kiss`.
-4. Google te generará una contraseña de 16 caracteres (como `abcd efgh ijkl mnop`).  
-   ⚠️ **Guárdala bien**, ya que no se vuelve a mostrar.
-
-### 🛠️ Paso 3: Configura el correo en la aplicación
-
-1. En la carpeta `src/main/resources/`, copia el archivo `mail.config.example` y renómbralo a `mail.config`
-2. Abre el archivo `mail.config` y completa los datos:
+El proyecto usa Supabase (PostgreSQL) en producción. Configurar las variables de entorno:
 
 ```properties
-# Contraseña de la base de datos MySQL
-db.password=tu-contraseña-mysql
-
-# Configuración del correo remitente
-mail.remitente=tu-correo@gmail.com
-mail.contrasena=abcd efgh ijkl mnop
+SPRING_DATASOURCE_URL=jdbc:postgresql://tu-host:5432/tu-db
+SPRING_DATASOURCE_USERNAME=usuario
+SPRING_DATASOURCE_PASSWORD=contraseña
 ```
 
-⚠️ **IMPORTANTE**: El archivo `mail.config` ya está en el `.gitignore`, por lo que no se subirá a Git y tus credenciales estarán seguras.
+### Email (SendGrid)
 
+Para enviar emails necesitas una API Key de SendGrid:
 
-## 📷 Capturas de pantalla
+```properties
+SENDGRID_API_KEY=tu-api-key
+MAIL_REMITENTE=tu-email@gmail.com
+```
+
+Si usas SMTP (Gmail), copia `mail.config.example` a `mail.config` y configura:
+
+```properties
+mail.remitente=tu-correo@gmail.com
+mail.contrasena=tu-contraseña-de-aplicación
+```
+
+## Deploy
+
+El proyecto está desplegado en Render.com con:
+- PostgreSQL en Supabase
+- SendGrid para envío de emails
+- Docker para containerización
+
+## Capturas
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/5dd10b3d-4e93-4c22-878b-cad7cb393c75" width="600"/>
@@ -72,16 +80,5 @@ mail.contrasena=abcd efgh ijkl mnop
   <br/>
   <br/>
   <img src="https://github.com/user-attachments/assets/9a6bf5af-c0e3-4699-aa26-e195fc81d20b" width="600"/>
-  <br/>
- 
 </p>
-
----
-
-
-## 🚀 Cómo ejecutarlo
-
-1. Clona el repositorio:
-   ```bash
-   git clone https://github.com/tu-usuario/killer-kiss.git
 

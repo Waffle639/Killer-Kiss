@@ -1037,6 +1037,7 @@ tbody td {
     font-size: 0.9em;
     font-weight: bold;
     transition: all 0.3s ease;
+    transform: translateY(8px);
 }
 
 .btn-admin:hover, .btn-logout:hover {

@@ -77,7 +77,7 @@
     "selectWinnerText": "Qui ha guanyat la partida?"
   },
   "emailModal": {
-    "title": "📧 Resultat de l'Enviament de Correus",
+    "title": "Resultat de l'Enviament de Correus",
     "sent": "Enviats",
     "failed": "Fallits",
     "total": "Total",
