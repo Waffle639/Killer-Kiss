@@ -2,6 +2,10 @@
 
 Killer Kiss es un juego donde cada jugador recibe por email el nombre de su víctima. El objetivo es eliminar a tu víctima con un beso sin que nadie te vea.
 
+**Visita la aplicación:** [https://killer-kiss.onrender.com/public.html](https://killer-kiss.onrender.com/public.html)
+
+> **Nota:** Si la aplicación no está activa, puede tardar unos segundos en arrancar los servicios (plan gratuito de Render).
+
 ## Cómo funciona
 
 1. Se crea una partida con una lista de jugadores
@@ -33,7 +37,6 @@ Killer Kiss es un juego donde cada jugador recibe por email el nombre de su víc
 - Ranking de jugadores
 - Estadísticas de partidas
 - Soporte multiidioma (CA/ES)
-- Vista pública con ranking en tiempo real
 
 ## Configuración
 
@@ -72,25 +75,45 @@ El proyecto está desplegado en Render.com con:
 
 ## Capturas
 
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/5dd10b3d-4e93-4c22-878b-cad7cb393c75" width="600"/>
-  <br/>
-  <br/>
-  <img src="https://github.com/user-attachments/assets/0856c668-3c26-4ff6-a2eb-8b0e2a18b8b7" width="600"/>
-  <br/>
-  <br/>
-  <img src="https://github.com/user-attachments/assets/9a6bf5af-c0e3-4699-aa26-e195fc81d20b" width="600"/>
-</p>
+### Panel admin - Personas
+Pestaña de gestión de jugadores donde se pueden añadir nuevos participantes con nombre y email, editar su información o eliminarlos. La tabla muestra el número de victorias y partidas jugadas de cada persona, permitiendo tener un historial completo de todos los jugadores.
 
-<img width="1152" height="743" alt="image" src="https://github.com/user-attachments/assets/d8cf8ea5-3e04-4dfe-9fcb-e42ed43164dd" />
-<img width="1130" height="848" alt="image" src="https://github.com/user-attachments/assets/577cd3e1-c07a-4b5c-9beb-84d9bcbd1409" />
+<img width="800" alt="admin personas" src="https://github.com/user-attachments/assets/d8cf8ea5-3e04-4dfe-9fcb-e42ed43164dd" />
 
-<img width="1166" height="665" alt="image" src="https://github.com/user-attachments/assets/d14461b8-8689-42a7-a114-d2898ad0e37d" />
-<img width="1128" height="525" alt="image" src="https://github.com/user-attachments/assets/e725c45c-3ce5-494e-9e59-3dd0ba2e53da" />
+---
 
-<img width="1127" height="608" alt="image" src="https://github.com/user-attachments/assets/70ada065-6489-4443-9126-04f7f5d20aa3" />
+### Resultado del envío de correos
+Modal que muestra las estadísticas después de enviar los emails: total de envíos, exitosos y fallidos. Para los emails que no se pudieron enviar, se muestra el nombre del jugador y su dirección de email, permitiendo identificar rápidamente a quién reenviar el objetivo manualmente.
 
-<img width="393" height="493" alt="image" src="https://github.com/user-attachments/assets/925c7b80-29a5-4698-afd6-2d611321c836" />
+<img width="800" alt="resultado correos" src="https://github.com/user-attachments/assets/577cd3e1-c07a-4b5c-9beb-84d9bcbd1409" />
+
+---
+
+### Correo recibido por los jugadores
+Ejemplo del email HTML que reciben los participantes al inicio de cada partida. Incluye un diseño moderno con gradiente, el nombre de su objetivo y el mensaje de inicio del juego. Los correos se envían en catalán o español según el idioma seleccionado en el panel de administración.
+
+<img width="800" alt="correo enviado" src="https://github.com/user-attachments/assets/6f39e10f-5038-4b33-81c2-4d12e2870226" />
+
+---
+
+### Panel admin - Ranking
+Vista del ranking global de todos los jugadores registrados. Muestra nombre, victorias, partidas jugadas y porcentaje de victorias. La tabla está ordenada por número de victorias de mayor a menor. Este mismo ranking está disponible públicamente para que cualquiera pueda consultarlo.
+
+<img width="800" alt="ranking" src="https://github.com/user-attachments/assets/d14461b8-8689-42a7-a114-d2898ad0e37d" />
+
+---
+
+### Panel admin - Estadísticas
+Pestaña con estadísticas generales del juego: número total de partidas (activas y finalizadas), total de jugadores registrados y un desglose de las partidas según su estado. Permite tener una visión general de la actividad del juego.
+
+<img width="800" alt="estadisticas" src="https://github.com/user-attachments/assets/e725c45c-3ce5-494e-9e59-3dd0ba2e53da" />
+
+---
+
+### Vista pública
+Página accesible sin autenticación donde cualquiera puede consultar el ranking de jugadores. Incluye selector de idioma (catalán/español) y un botón para acceder al panel de administración. Perfecta para que los jugadores consulten su posición sin necesidad de credenciales.
+
+<img width="800" alt="via publica" src="https://github.com/user-attachments/assets/70ada065-6489-4443-9126-04f7f5d20aa3" />
 
 
 
