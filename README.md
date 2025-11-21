@@ -82,3 +82,22 @@ El proyecto está desplegado en Render.com con:
   <img src="https://github.com/user-attachments/assets/9a6bf5af-c0e3-4699-aa26-e195fc81d20b" width="600"/>
 </p>
 
+<img width="1152" height="743" alt="image" src="https://github.com/user-attachments/assets/d8cf8ea5-3e04-4dfe-9fcb-e42ed43164dd" />
+<img width="1130" height="848" alt="image" src="https://github.com/user-attachments/assets/577cd3e1-c07a-4b5c-9beb-84d9bcbd1409" />
+
+<img width="1166" height="665" alt="image" src="https://github.com/user-attachments/assets/d14461b8-8689-42a7-a114-d2898ad0e37d" />
+<img width="1128" height="525" alt="image" src="https://github.com/user-attachments/assets/e725c45c-3ce5-494e-9e59-3dd0ba2e53da" />
+
+<img width="1127" height="608" alt="image" src="https://github.com/user-attachments/assets/70ada065-6489-4443-9126-04f7f5d20aa3" />
+
+<img width="393" height="493" alt="image" src="https://github.com/user-attachments/assets/925c7b80-29a5-4698-afd6-2d611321c836" />
+
+
+
+
+
+
+
+
+
+
