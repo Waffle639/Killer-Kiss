@@ -557,7 +557,7 @@ tbody td {
 }
 
 .modal-content {
-    background-color: white;
+    background-color: white !important;
     margin: 10% auto;
     padding: 30px;
     border-radius: 15px;
@@ -1075,7 +1075,7 @@ tbody td {
 
 /* Modal login mejorado */
 .login-modal {
-    max-width: 420px;
+    max-width: 480px;
     padding: 0;
     overflow: hidden;
 }
@@ -1083,25 +1083,31 @@ tbody td {
 .login-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 40px 30px 30px;
+    padding: 25px 20px 20px;
     text-align: center;
 }
 
 .login-header svg {
-    margin-bottom: 15px;
-    stroke: white;
+    margin-bottom: 10px;
+    stroke: white !important;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+    width: 38px;
+    height: 38px;
 }
 
 .login-header h2 {
-    color: white;
-    margin: 0 0 8px 0;
-    font-size: 1.5em;
+    color: white !important;
+    margin: 0 0 5px 0;
+    font-size: 1.35em;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    white-space: nowrap;
 }
 
 .login-header p {
     margin: 0;
-    opacity: 0.9;
-    font-size: 0.9em;
+    opacity: 0.95;
+    font-size: 0.88em;
+    color: white !important;
 }
 
 .login-modal form {
