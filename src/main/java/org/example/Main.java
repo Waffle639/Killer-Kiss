@@ -1,7 +1,5 @@
 package org.example;
 
-import jakarta.mail.*;
-import jakarta.mail.internet.*;
 import org.example.repository.KillerKissRepository;
 import org.example.repository.PersonaRepository;
 import org.springframework.boot.CommandLineRunner;

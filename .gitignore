@@ -41,4 +41,7 @@ build/
 # Archivo con credenciales y contraseñas
 mail.config
 
+# Perfil local con IDs de EmailJS (no subir al repo)
+src/main/resources/application-local.properties
+
 *.log

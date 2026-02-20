@@ -7,6 +7,8 @@
     <link rel="icon" type="image/png" href="img/icono_killerkiss.png">
     <link rel="stylesheet" href="css/styles.css">
     <script src="js/i18n.js"></script>
+    <!-- EmailJS SDK - envío de emails desde el navegador -->
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <script>
         // Verificar autenticación
         if (!localStorage.getItem('authenticated')) {
@@ -31,8 +33,8 @@
                 </div>
                 
                 <div class="header-actions">
-                    <div id="email-counter" class="email-counter">
-                        <span data-i18n="header.emails">Emails</span>: <span id="contador-emails">0/100</span>
+                    <div id="email-counter" class="email-counter" title="EmailJS - envío desde el navegador">
+                        📧 EmailJS
                     </div>
                     <button onclick="logout()" class="btn-logout" style="margin-top: 15px;"><span data-i18n="header.logout">Salir</span></button>
                 </div>

@@ -1,59 +1,74 @@
 package org.example.service;
 
-import com.sendgrid.*;
-import com.sendgrid.helpers.mail.Mail;
-import com.sendgrid.helpers.mail.objects.Content;
-import com.sendgrid.helpers.mail.objects.Email;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
 /**
- * Servicio para enviar emails usando SendGrid API (HTTP)
- * Solución para Render.com que bloquea puerto SMTP 587
+ * Servicio para enviar emails usando Resend API (HTTP)
+ * Gratis: hasta 3000 emails/mes, 100/día
+ * https://resend.com
  */
 @Service
 public class SendGridApiService {
 
-    @Value("${sendgrid.api.key:}")
+    @Value("${resend.api.key:}")
     private String apiKey;
 
     /**
-     * Envía email usando SendGrid API HTTP (no SMTP)
+     * Envía email usando Resend API HTTP
      */
-    public boolean sendEmail(String from, String to, String subject, String textContent) {
+    public boolean sendEmail(String from, String to, String subject, String htmlContent) {
         if (apiKey == null || apiKey.isEmpty()) {
-            System.err.println("✗ SendGrid API Key no configurada");
+            System.err.println("✗ Resend API Key no configurada");
             return false;
         }
 
         try {
-            Email fromEmail = new Email(from);
-            Email toEmail = new Email(to);
-            Content content = new Content("text/html", textContent);
-            Mail mail = new Mail(fromEmail, subject, toEmail, content);
+            String safeHtml = htmlContent
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "");
+            String safeSubject = subject.replace("\\", "\\\\").replace("\"", "\\\"");
 
-            SendGrid sg = new SendGrid(apiKey);
-            Request request = new Request();
-            
-            request.setMethod(Method.POST);
-            request.setEndpoint("mail/send");
-            request.setBody(mail.build());
-            
-            Response response = sg.api(request);
-            
-            if (response.getStatusCode() >= 200 && response.getStatusCode() < 300) {
-                System.out.println("✓ Email enviado via SendGrid API [HTTP " + response.getStatusCode() + "]");
+            String body = "{\"from\":\"" + from + "\","
+                + "\"to\":[\"" + to + "\"],"
+                + "\"subject\":\"" + safeSubject + "\","
+                + "\"html\":\"" + safeHtml + "\"}";
+
+            URL url = new URL("https://api.resend.com/emails");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Authorization", "Bearer " + apiKey);
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
+            conn.setConnectTimeout(10000);
+            conn.setReadTimeout(15000);
+
+            try (OutputStream os = conn.getOutputStream()) {
+                os.write(body.getBytes(StandardCharsets.UTF_8));
+            }
+
+            int status = conn.getResponseCode();
+            if (status >= 200 && status < 300) {
+                System.out.println("✓ Email enviado via Resend API [HTTP " + status + "]");
                 return true;
             } else {
-                System.err.println("✗ SendGrid API error: HTTP " + response.getStatusCode());
-                System.err.println("  Body: " + response.getBody());
+                String errorBody = new String(
+                    (status >= 400 ? conn.getErrorStream() : conn.getInputStream()).readAllBytes(),
+                    StandardCharsets.UTF_8
+                );
+                System.err.println("✗ Resend API error: HTTP " + status + " → " + errorBody);
                 return false;
             }
-            
-        } catch (IOException e) {
-            System.err.println("✗ Error SendGrid API: " + e.getMessage());
+
+        } catch (Exception e) {
+            System.err.println("✗ Error Resend API: " + e.getMessage());
             e.printStackTrace();
             return false;
         }

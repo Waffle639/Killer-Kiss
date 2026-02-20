@@ -1,6 +1,10 @@
 // URL base de la API (usar ruta relativa para evitar problemas CORS cuando el host cambia)
 const API_URL = '/api';
 
+// Configuración de EmailJS - se carga desde el servidor en tiempo de ejecución
+// (los valores reales viven en las variables de entorno del servidor, no aquí)
+let emailjsConfig = null;
+
 // Estado global
 let personas = [];
 let partidasActivas = [];
@@ -17,19 +21,25 @@ function logout() {
 // INICIALIZACIÓN
 // ========================================
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // Configurar selector de idioma
     const langSelector = document.getElementById('language-selector');
     if (langSelector) {
         langSelector.value = getCurrentLanguage();
     }
     
+    // Cargar configuración de EmailJS desde el servidor
+    try {
+        const res = await fetch(`${API_URL}/config`);
+        emailjsConfig = await res.json();
+        emailjs.init(emailjsConfig.emailjsPublicKey);
+    } catch (e) {
+        console.error('No se pudo cargar la configuración de EmailJS:', e);
+    }
+    
     // Cargar solo la primera pestaña (personas)
     cargarPersonas();
     TabActual = 'personas';
-    
-    // Cargar contador de emails
-    cargarContadorEmails();
     
     // Event listeners de formularios
     document.getElementById('form-persona').addEventListener('submit', crearPersona);
@@ -499,7 +509,7 @@ async function crearPartida(event) {
             document.getElementById('form-partida').reset();
             cargarPartidas(); // Forzar recarga para obtener datos actualizados
             
-            // Obtener estadísticas de envío
+            // Obtener asignaciones y enviar via EmailJS
             setTimeout(async () => {
                 try {
                     const statsResponse = await fetch(`${API_URL}/partidas/${partida.id}/enviar-correos`, {
@@ -509,16 +519,12 @@ async function crearPartida(event) {
                     });
                     if (statsResponse.ok) {
                         const body = await statsResponse.json();
-                        // El backend ahora devuelve { resultado, contador }
                         const resultado = body.resultado || body;
+                        // Enviar emails via EmailJS desde el navegador
+                        await enviarEmailsConEmailJS(resultado.detalles);
+                        resultado.exitosos = resultado.detalles.filter(d => d.exitoso).length;
+                        resultado.fallidos = resultado.detalles.filter(d => !d.exitoso).length;
                         mostrarModalResultadoEnvio(resultado);
-                        // Si viene contador actualizado, actualizar el DOM sin refetch
-                        if (body.contador) {
-                            actualizarContadorEnDOM(body.contador);
-                        } else {
-                            // Fallback: cargar contador normalmente
-                            await cargarContadorEmails();
-                        }
                     } else {
                         cerrarModalCargaCorreos();
                         mostrarMensaje('✅ Partida creada correctamente!', 'success');
@@ -642,37 +648,65 @@ function mostrarMensaje(texto, tipo = 'info') {
 }
 
 // ========================================
-// ENVÍO DE CORREOS
+// ENVÍO DE CORREOS - EmailJS
 // ========================================
+
+/**
+ * Envía emails a los participantes usando EmailJS desde el navegador.
+ * @param {Array} detalles - Lista de { nombre, email, exitoso, victima } del backend
+ */
+async function enviarEmailsConEmailJS(detalles) {
+    if (!emailjsConfig) {
+        console.error('EmailJS no configurado');
+        return;
+    }
+    for (const detalle of detalles) {
+        if (!detalle.exitoso || !detalle.email || detalle.email === 'Sin email') {
+            continue;
+        }
+        try {
+            const params = {
+                email: detalle.email,
+                to_name: detalle.nombre,
+                name: detalle.nombre,
+                target_name: detalle.victima
+            };
+            await emailjs.send(emailjsConfig.emailjsServiceId, emailjsConfig.emailjsTemplateId, params);
+            detalle.exitoso = true;
+            detalle.mensaje = 'Enviado correctamente';
+        } catch (err) {
+            detalle.exitoso = false;
+            detalle.mensaje = 'Error EmailJS: ' + (err.text || err.message || JSON.stringify(err));
+            console.error('EmailJS error para', detalle.email, err);
+        }
+    }
+}
 
 async function enviarCorreosPartida(partidaId) {
     try {
-        // Mostrar mensaje de carga
-        mostrarMensaje('Enviando correos...', 'info');
+        mostrarMensaje('Obteniendo asignaciones...', 'info');
+        mostrarModalCargaCorreos();
         
         const response = await fetch(`${API_URL}/partidas/${partidaId}/enviar-correos`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ idioma: getCurrentLanguage() })
         });
         
         if (response.ok) {
             const body = await response.json();
             const resultado = body.resultado || body;
+            await enviarEmailsConEmailJS(resultado.detalles);
+            resultado.exitosos = resultado.detalles.filter(d => d.exitoso).length;
+            resultado.fallidos = resultado.detalles.filter(d => !d.exitoso).length;
             mostrarModalResultadoEnvio(resultado);
-            // Actualizar contador desde la respuesta si está disponible, si no, fallback a fetch
-            if (body.contador) {
-                actualizarContadorEnDOM(body.contador);
-            } else {
-                await cargarContadorEmails();
-            }
         } else {
+            cerrarModalCargaCorreos();
             const error = await response.json();
             mostrarMensaje(`Error: ${error.error || 'No se pudieron enviar los correos'}`, 'error');
         }
     } catch (error) {
+        cerrarModalCargaCorreos();
         console.error('Error:', error);
         mostrarMensaje('Error al enviar correos', 'error');
     }
@@ -791,61 +825,7 @@ window.onclick = function(event) {
     }
 }
 
-// ========================================
-// CONTADOR DE EMAILS
-// ========================================
-
-async function cargarContadorEmails() {
-    try {
-        const response = await fetch(`${API_URL}/partidas/emails/contador`);
-        if (!response.ok) {
-            console.warn('No se pudo cargar el contador de emails');
-            return;
-        }
-
-        const data = await response.json();
-        const contador = document.getElementById('contador-emails');
-        const emailCounter = document.getElementById('email-counter');
-        
-        if (contador) {
-            contador.textContent = data.formateado || `${data.enviados}/${data.limite}`;
-            
-            // Cambiar color según uso
-            const porcentaje = (data.enviados / data.limite) * 100;
-            emailCounter.classList.remove('warning', 'danger');
-            
-            if (porcentaje >= 90) {
-                emailCounter.classList.add('danger');
-            } else if (porcentaje >= 70) {
-                emailCounter.classList.add('warning');
-            }
-        }
-    } catch (error) {
-        console.error('Error al cargar contador de emails:', error);
-    }
-}
-
-/**
- * Actualiza el contador de emails en el DOM usando un objeto contador {enviados, limite, formateado}
- */
-function actualizarContadorEnDOM(contador) {
-    try {
-        const contadorEl = document.getElementById('contador-emails');
-        const emailCounter = document.getElementById('email-counter');
-        if (!contadorEl || !emailCounter) return;
-        contadorEl.textContent = contador.formateado || `${contador.enviados}/${contador.limite}`;
-        // Cambiar color según uso
-        const porcentaje = (contador.enviados / contador.limite) * 100;
-        emailCounter.classList.remove('warning', 'danger');
-        if (porcentaje >= 90) {
-            emailCounter.classList.add('danger');
-        } else if (porcentaje >= 70) {
-            emailCounter.classList.add('warning');
-        }
-    } catch (e) {
-        console.error('Error actualizando contador en DOM:', e);
-    }
-}
+// cargarContadorEmails y actualizarContadorEnDOM eliminados - ahora se usa EmailJS (client-side)
 
 /**
  * Muestra modal con correos fallidos de una partida
@@ -854,19 +834,21 @@ async function mostrarCorreosFallidos(partidaId) {
     try {
         const partida = partidasActivas.find(p => p.id === partidaId);
         if (!partida || !partida.asignaciones) {
-            mostrarMensaje('No hay correos fallidos', 'info');
+            mostrarMensaje('No hay correos pendientes', 'info');
             return;
         }
         
         const asignaciones = partida.asignaciones;
         const personas = partida.personas;
         
-        const detalles = Object.entries(asignaciones).map(([emailCazador, emailVictima]) => {
+        // asignaciones: { emailJugador -> nombreVictima }
+        const detalles = Object.entries(asignaciones).map(([emailCazador, nombreVictima]) => {
             const cazador = personas.find(p => p.mail === emailCazador);
             return {
                 nombre: cazador ? cazador.nom : 'Desconocido',
                 email: emailCazador,
                 exitoso: false,
+                victima: nombreVictima,
                 mensaje: 'Correo pendiente de envío'
             };
         });
@@ -887,37 +869,34 @@ async function mostrarCorreosFallidos(partidaId) {
 }
 
 /**
- * Reenvía el correo a un jugador específico
+ * Reenvía el correo a un jugador específico usando EmailJS
  */
 async function reenviarCorreo(partidaId, email, nombre) {
     if (!confirm(`¿Reenviar correo a ${nombre} (${email})?`)) {
         return;
     }
     
+    // Obtener nombre de la víctima desde las asignaciones de la partida
+    const partida = partidasActivas.find(p => p.id === partidaId);
+    const victimaNombre = partida?.asignaciones?.[email];
+    
+    if (!victimaNombre) {
+        mostrarMensaje('❌ No se encontró la asignación para este jugador', 'error');
+        return;
+    }
+    
     try {
-        const response = await fetch(`${API_URL}/partidas/${partidaId}/reenviar-email`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ email: email })
+        await emailjs.send(emailjsConfig.emailjsServiceId, emailjsConfig.emailjsTemplateId, {
+            email: email,
+            to_name: nombre,
+            name: nombre,
+            target_name: victimaNombre
         });
-        
-        const resultado = await response.json();
-        
-        if (resultado.exito) {
-            mostrarMensaje(`✅ Correo reenviado correctamente a ${nombre}`, 'success');
-            // Actualizar contador de emails
-            await cargarContadorEmails();
-            // Recargar partidas para actualizar el botón
-            await cargarPartidas();
-            // Cerrar el modal actual
-            cerrarModalEnvio();
-        } else {
-            mostrarMensaje(`❌ Error: ${resultado.mensaje}`, 'error');
-        }
-    } catch (error) {
-        console.error('Error al reenviar correo:', error);
-        mostrarMensaje('Error al reenviar correo', 'error');
+        mostrarMensaje(`✅ Correo reenviado correctamente a ${nombre}`, 'success');
+        await cargarPartidas();
+        cerrarModalEnvio();
+    } catch (err) {
+        console.error('EmailJS reenvio error:', err);
+        mostrarMensaje(`❌ Error EmailJS: ${err.text || err.message || 'Error desconocido'}`, 'error');
     }
 }
