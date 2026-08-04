@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -117,8 +118,7 @@ public class KillerKissController {
 
     /**
      * POST /api/partidas/{id}/enviar-correos
-     * Calcula y devuelve las asignaciones (jugador → víctima) de la partida.
-     * El frontend usa EmailJS para enviar los emails desde el navegador.
+     * Envia los correos con las asignaciones a todos los participantes via Gmail SMTP.
      */
     @PostMapping("/{id}/enviar-correos")
     public ResponseEntity<?> enviarCorreos(@PathVariable(name = "id") Long id, @RequestBody(required = false) Map<String, String> body) {
@@ -127,8 +127,8 @@ public class KillerKissController {
                     .orElseThrow(() -> new RuntimeException("Partida no encontrada con ID: " + id));
 
             String idioma = (body != null && body.containsKey("idioma")) ? body.get("idioma") : "es";
-            
-            KillerKissService.ResultadoEnvioDTO resultado = partidaService.obtenerAsignacionesPartida(partida, idioma);
+
+            KillerKissService.ResultadoEnvioDTO resultado = partidaService.enviarCorreosPartida(partida, idioma);
             Map<String, Object> response = new java.util.HashMap<>();
             response.put("resultado", resultado);
             return ResponseEntity.ok(response);
@@ -136,7 +136,35 @@ public class KillerKissController {
             return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new ErrorResponse("Error al obtener asignaciones: " + e.getMessage()));
+                    .body(new ErrorResponse("Error al enviar correos: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * POST /api/partidas/{id}/reenviar-correo
+     * Reenvia un correo individual a un jugador.
+     */
+    @PostMapping("/{id}/reenviar-correo")
+    public ResponseEntity<?> reenviarCorreo(@PathVariable(name = "id") Long id, @RequestBody Map<String, String> body) {
+        try {
+            String email = body.get("email");
+            String idioma = body.getOrDefault("idioma", "es");
+
+            if (email == null || email.isEmpty()) {
+                return ResponseEntity.badRequest().body(new ErrorResponse("El email es obligatorio"));
+            }
+
+            boolean ok = partidaService.reenviarCorreoIndividual(id, email, idioma);
+            if (ok) {
+                return ResponseEntity.ok(Map.of("success", true, "message", "Correo reenviado correctamente"));
+            } else {
+                return ResponseEntity.badRequest().body(new ErrorResponse("No se pudo reenviar el correo"));
+            }
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(new ErrorResponse(e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("Error al reenviar correo: " + e.getMessage()));
         }
     }
 

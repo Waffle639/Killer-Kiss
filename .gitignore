@@ -41,6 +41,9 @@ build/
 # Archivo con credenciales y contraseñas
 mail.config
 
+# Base de datos local SQLite
+*.db
+
 # Perfil local con IDs de EmailJS (no subir al repo)
 src/main/resources/application-local.properties
 

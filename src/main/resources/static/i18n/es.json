@@ -1,19 +1,19 @@
 {
   "header": {
     "title": "KILLER KISS",
-    "subtitle": "Panel de Administración",
+    "subtitle": "Panel de Administracion",
     "logout": "Salir",
     "emails": "Emails"
   },
   "tabs": {
-    "personas": "👤 Personas",
-    "partidas": "🎯 Partidas",
-    "ranking": "🏆 Ranking",
-    "estadisticas": "📊 Estadísticas"
+    "personas": "Personas",
+    "partidas": "Partidas",
+    "ranking": "Ranking",
+    "estadisticas": "Estadisticas"
   },
   "personas": {
-    "title": "Gestión de Personas",
-    "addNew": "➕ Añadir Nueva Persona",
+    "title": "Gestion de Personas",
+    "addNew": "Anadir Nueva Persona",
     "name": "Nombre",
     "email": "Email",
     "addButton": "Guardar",
@@ -28,16 +28,16 @@
     "edit": "Editar",
     "delete": "Eliminar",
     "editModal": {
-      "title": "✏️ Editar Persona",
+      "title": "Editar Persona",
       "save": "Guardar",
       "cancel": "Cancelar"
     }
   },
   "partidas": {
-    "title": "Gestión de Partidas",
-    "createNew": "➕ Crear Nueva Partida",
+    "title": "Gestion de Partidas",
+    "createNew": "Crear Nueva Partida",
     "gameName": "Nombre de la partida",
-    "selectParticipants": "Selecciona participantes (mínimo 2):",
+    "selectParticipants": "Selecciona participantes (minimo 2):",
     "selectAll": "Seleccionar todos",
     "createButton": "Crear Partida",
     "activeGames": "Partidas Activas",
@@ -55,16 +55,16 @@
       "endDate": "FECHA FIN"
     },
     "players": "jugadores",
-    "sendEmails": "📧 Enviar Emails",
-    "finish": "✅ Finalizar"
+    "sendEmails": "Enviar Emails",
+    "finish": "Finalizar"
   },
   "ranking": {
     "title": "Ranking de Jugadores",
     "position": "#",
-    "victories": "🏆 Victorias"
+    "victories": "Victorias"
   },
   "estadisticas": {
-    "title": "Estadísticas Generales",
+    "title": "Estadisticas Generales",
     "totalPersonas": "Total Personas",
     "totalPartidas": "Total Partidas",
     "partidasActivas": "Partidas Activas",
@@ -74,37 +74,37 @@
   "modal": {
     "close": "Cerrar",
     "selectWinner": "Finalizar Partida",
-    "selectWinnerText": "¿Quién ha ganado la partida?"
+    "selectWinnerText": "Quien ha ganado la partida?"
   },
   "emailModal": {
-    "title": "📧 Resultado del Envío de Correos",
+    "title": "Resultado del Envio de Correos",
     "sent": "Enviados",
     "failed": "Fallidos",
     "total": "Total",
-    "failedEmails": "❌ Correos Fallidos:",
-    "resend": "📧 Reenviar",
-    "pendingEmail": "Correo pendiente de envío",
+    "failedEmails": "Correos Fallidos",
+    "resend": "Reenviar",
+    "pendingEmail": "Correo pendiente de envio",
     "sending": "Enviando Correos",
-    "sendingMessage": "Por favor espera mientras se envían los correos a todos los participantes..."
+    "sendingMessage": "Por favor espera mientras se envian los correos a todos los participantes..."
   },
   "messages": {
     "loading": "Cargando",
     "noData": "No hay datos disponibles",
-    "confirmDelete": "¿Estás seguro de eliminar esta persona?",
-    "confirmFinish": "¿Estás seguro de finalizar esta partida?"
+    "confirmDelete": "Estas seguro de eliminar esta persona?",
+    "confirmFinish": "Estas seguro de finalizar esta partida?"
   },
   "public": {
     "subtitle": "Ranking y Partidas Activas",
     "admin": "Admin",
-    "activeGames": "🎯 Partidas Activas",
-    "activeGamesTitle": "🎯 Partidas Activas",
+    "activeGames": "Partidas Activas",
+    "activeGamesTitle": "Partidas Activas",
     "gameName": "Nombre",
     "players": "Jugadores",
-    "loginTitle": "Acceso Administración",
+    "loginTitle": "Acceso Administracion",
     "loginSubtitle": "Introduce tus credenciales",
     "username": "Usuario",
-    "password": "Contraseña",
-    "loginButton": "Iniciar Sesión"
+    "password": "Contrasena",
+    "loginButton": "Iniciar Sesion"
   },
   "email": {
     "subject": "Killer Kiss - Tu objetivo",

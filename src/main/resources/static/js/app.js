@@ -1,564 +1,494 @@
-// URL base de la API (usar ruta relativa para evitar problemas CORS cuando el host cambia)
 const API_URL = '/api';
 
-// Configuración de EmailJS - se carga desde el servidor en tiempo de ejecución
-// (los valores reales viven en las variables de entorno del servidor, no aquí)
-let emailjsConfig = null;
-
-// Estado global
 let personas = [];
 let partidasActivas = [];
 let partidasFinalizadas = [];
 let partidaSeleccionada = null;
+let TabActual = 'personas';
 
-// Logout
-function logout() {
-    localStorage.removeItem('authenticated');
-    window.location.href = 'public.html';
+// ========================================
+// TOAST NOTIFICATION SYSTEM
+// ========================================
+
+function toast(message, type = 'info', duration = 4000) {
+    let container = document.querySelector('.toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    const icons = { success: '\u2713', error: '\u2717', info: '\u2139' };
+    const el = document.createElement('div');
+    el.className = 'toast ' + type;
+    el.innerHTML = '<span class="toast-icon">' + (icons[type] || icons.info) + '</span><span class="toast-message"></span>';
+    el.querySelector('.toast-message').textContent = message;
+    container.appendChild(el);
+
+    setTimeout(() => {
+        el.classList.add('leaving');
+        el.addEventListener('animationend', () => el.remove());
+    }, duration);
 }
 
 // ========================================
-// INICIALIZACIÓN
+// MODAL FACTORY
+// ========================================
+
+function createModal(options) {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+
+    const wide = options.wide ? ' wide' : '';
+    overlay.innerHTML = '<div class="modal-panel' + wide + '">'
+        + '<div class="modal-header">'
+        + '<h2>' + (options.icon ? '<span class="icon">' + options.icon + '</span>' : '') + (options.title || '') + '</h2>'
+        + '<button class="modal-close">&times;</button>'
+        + '</div>'
+        + '<div class="modal-body">' + (options.body || '') + '</div>'
+        + (options.footer ? '<div class="modal-footer">' + options.footer + '</div>' : '')
+        + '</div>';
+
+    document.body.appendChild(overlay);
+
+    const panel = overlay.querySelector('.modal-panel');
+
+    function close() {
+        overlay.style.opacity = '0';
+        overlay.style.transition = 'opacity 0.2s ease';
+        setTimeout(() => overlay.remove(), 200);
+        if (options.onClose) options.onClose();
+    }
+
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) close();
+    });
+
+    overlay.querySelector('.modal-close').addEventListener('click', close);
+
+    document.addEventListener('keydown', function escHandler(e) {
+        if (e.key === 'Escape') {
+            close();
+            document.removeEventListener('keydown', escHandler);
+        }
+    });
+
+    if (options.onOpen) {
+        requestAnimationFrame(() => options.onOpen(overlay, panel, close));
+    }
+
+    return { overlay, panel, close };
+}
+
+// ========================================
+// LOGOUT
+// ========================================
+
+// ========================================
+// INITIALIZATION
 // ========================================
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Configurar selector de idioma
-    const langSelector = document.getElementById('language-selector');
-    if (langSelector) {
-        langSelector.value = getCurrentLanguage();
-    }
-    
-    // Cargar configuración de EmailJS desde el servidor
-    try {
-        const res = await fetch(`${API_URL}/config`);
-        emailjsConfig = await res.json();
-        emailjs.init(emailjsConfig.emailjsPublicKey);
-    } catch (e) {
-        console.error('No se pudo cargar la configuración de EmailJS:', e);
-    }
-    
-    // Cargar solo la primera pestaña (personas)
     cargarPersonas();
     TabActual = 'personas';
-    
-    // Event listeners de formularios
+
     document.getElementById('form-persona').addEventListener('submit', crearPersona);
     document.getElementById('form-partida').addEventListener('submit', crearPartida);
+
+    cargarEmailCounter();
 });
 
 // ========================================
-// NAVEGACIÓN ENTRE TABS
+// EMAIL COUNTER
+// ========================================
+
+async function cargarEmailCounter() {
+    try {
+        const response = await fetch(API_URL + '/partidas/estadisticas');
+        // Use the daily email count if available, else keep default
+        const counter = document.getElementById('email-counter');
+        if (counter) {
+            const countEl = counter.querySelector('.count');
+            if (countEl) countEl.textContent = 'active';
+        }
+    } catch (e) {}
+}
+
+// ========================================
+// TAB NAVIGATION
 // ========================================
 
 function showTab(tabName, event) {
-    // Ocultar todos los tabs
-    document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    
-    // Desactivar todos los botones
-    document.querySelectorAll('.tab-button').forEach(button => {
-        button.classList.remove('active');
-    });
-    
-    // Mostrar el tab seleccionado
-    document.getElementById(`${tabName}-tab`).classList.add('active');
-    
-    // Activar el botón correspondiente
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+
+    document.getElementById(tabName + '-tab').classList.add('active');
+
     if (event && event.target) {
         event.target.classList.add('active');
     } else {
-        // Si no hay event, buscar el botón manualmente
-        document.querySelectorAll('.tab-button').forEach(button => {
-            if (button.getAttribute('onclick').includes(tabName)) {
-                button.classList.add('active');
-            }
+        document.querySelectorAll('.tab-button').forEach(btn => {
+            if (btn.getAttribute('onclick').includes(tabName)) btn.classList.add('active');
         });
     }
+
     if (tabName !== TabActual) {
-        // Cargar datos según el tab seleccionado
-        if (tabName === 'personas') {
-            cargarPersonas();
-            TabActual = 'personas';
-        } else if (tabName === 'partidas') {
-            cargarPartidas();
-            TabActual = 'partidas';
-        } else if (tabName === 'ranking') {
-            cargarRanking();
-            TabActual = 'ranking';
-        } else if (tabName === 'estadisticas') {
-            cargarEstadisticas();
-            TabActual = 'estadisticas';
-        }
+        TabActual = tabName;
+        if (tabName === 'personas') cargarPersonas();
+        else if (tabName === 'partidas') cargarPartidas();
+        else if (tabName === 'ranking') cargarRanking();
+        else if (tabName === 'estadisticas') cargarEstadisticas();
     }
 }
 
 // ========================================
-// FUNCIONES PERSONAS
+// PERSONAS
 // ========================================
 
 async function cargarPersonas() {
     try {
-        const response = await fetch(`${API_URL}/personas`);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
+        const response = await fetch(API_URL + '/personas');
+        if (!response.ok) throw new Error('HTTP ' + response.status);
         const data = await response.json();
-        
-        // Validar que sea un array
-        if (Array.isArray(data)) {
-            personas = data;
-        } else {
-            console.error('La respuesta no es un array:', data);
-            personas = [];
-        }
-        
+        personas = Array.isArray(data) ? data : [];
         mostrarPersonasEnTabla();
         actualizarSelectorParticipantes();
-        
     } catch (error) {
         console.error('Error al cargar personas:', error);
-        mostrarMensaje('Error al cargar personas', 'error');
+        toast('Error al cargar personas', 'error');
         personas = [];
     }
 }
 
 function mostrarPersonasEnTabla() {
     const tbody = document.querySelector('#tabla-personas tbody');
-    
-    // Validar que personas sea un array
     if (!Array.isArray(personas)) {
-        console.error('personas no es un array:', personas);
         tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Error al cargar personas</td></tr>';
         return;
     }
-    
     if (personas.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No hay personas registradas</td></tr>';
         return;
     }
-    
-    tbody.innerHTML = personas.map(persona => `
-        <tr>
-            <td>${persona.id}</td>
-            <td>${persona.nom}</td>
-            <td>${persona.mail ? persona.mail : '<span style="color: red;">❌ Sin email</span>'}</td>
-            <td><strong>${persona.victories}</strong></td>
-            <td>
-                <button class="btn-action btn-edit" onclick="abrirModalEditarPersona(${persona.id})">
-                    Editar
-                </button>
-                <button class="btn-action btn-delete" onclick="eliminarPersona(${persona.id})">
-                    Eliminar
-                </button>
-            </td>
-        </tr>
-    `).join('');
-}
 
-async function cargarRanking() {
-    try {
-        const response = await fetch(`${API_URL}/personas/ranking`);
-        const ranking = await response.json();
-        mostrarRanking(ranking);
-    } catch (error) {
-        console.error('Error al cargar ranking:', error);
-        mostrarMensaje('Error al cargar ranking', 'error');
-    }
-}
-
-function mostrarRanking(ranking = null) {
-    const container = document.getElementById('ranking-personas');
-    
-    // Si no se proporciona ranking, usar personas ordenadas
-    if (!ranking) {
-        // Validar que personas sea un array
-        if (!Array.isArray(personas)) {
-            console.error('personas no es un array:', personas);
-            container.innerHTML = '<p class="empty-state">Error al cargar ranking</p>';
-            return;
-        }
-        ranking = [...personas].sort((a, b) => b.victories - a.victories);
-    }
-    
-    // Validar que ranking sea un array
-    if (!Array.isArray(ranking)) {
-        console.error('ranking no es un array:', ranking);
-        container.innerHTML = '<p class="empty-state">Error al cargar ranking</p>';
-        return;
-    }
-    
-    if (ranking.length === 0) {
-        container.innerHTML = '<p class="empty-state">No hay datos para mostrar</p>';
-        return;
-    }
-    
-    container.innerHTML = ranking.map((persona, index) => {
-        let medalEmoji = '';
-        if (index === 0) medalEmoji = '🥇';
-        else if (index === 1) medalEmoji = '🥈';
-        else if (index === 2) medalEmoji = '🥉';
-        
-        return `
-            <div class="ranking-item ${index < 3 ? 'top-three' : ''}">
-                <div class="ranking-position">${medalEmoji || (index + 1)}</div>
-                <div class="ranking-info">
-                    <strong>${persona.nom}</strong><br>
-                    <small>${persona.mail}</small>
-                </div>
-                <div class="ranking-victories">${persona.victories} victorias</div>
-            </div>
-        `;
-    }).join('');
+    tbody.innerHTML = personas.map(p => '<tr>'
+        + '<td>' + p.id + '</td>'
+        + '<td><strong>' + escapeHtml(p.nom) + '</strong></td>'
+        + '<td>' + (p.mail ? p.mail : '<span class="text-error">Sin email</span>') + '</td>'
+        + '<td><strong>' + p.victories + '</strong></td>'
+        + '<td><button class="btn-action btn-edit" onclick="abrirModalEditarPersona(' + p.id + ')">Editar</button> '
+        + '<button class="btn-action btn-delete" onclick="eliminarPersona(' + p.id + ')">Eliminar</button></td>'
+        + '</tr>').join('');
 }
 
 async function crearPersona(event) {
     event.preventDefault();
-    
-    const nombre = document.getElementById('persona-nombre').value;
-    const email = document.getElementById('persona-email').value;
-    
+    const nombre = document.getElementById('persona-nombre').value.trim();
+    const email = document.getElementById('persona-email').value.trim();
+
     try {
-        const response = await fetch(`${API_URL}/personas`, {
+        const response = await fetch(API_URL + '/personas', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                nom: nombre,
-                mail: email,
-                victories: 0
-            })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nom: nombre, mail: email, victories: 0 })
         });
-        
+
         if (response.ok) {
-            mostrarMensaje('Persona creada correctamente', 'success');
+            toast('Persona creada correctamente', 'success');
             document.getElementById('form-persona').reset();
-            cargarPersonas(); // Forzar recarga para obtener datos actualizados
+            cargarPersonas();
         } else {
             const error = await response.json();
-            mostrarMensaje(`Error: ${error.error || 'No se pudo crear la persona'}`, 'error');
+            toast('Error: ' + (error.error || 'No se pudo crear la persona'), 'error');
         }
     } catch (error) {
         console.error('Error:', error);
-        mostrarMensaje('Error al crear persona', 'error');
+        toast('Error al crear persona', 'error');
     }
 }
 
 function abrirModalEditarPersona(id) {
     const persona = personas.find(p => p.id === id);
     if (!persona) {
-        mostrarMensaje('Persona no encontrada', 'error');
+        toast('Persona no encontrada', 'error');
         return;
     }
-    
-    // Crear modal
-    const modal = document.createElement('div');
-    modal.id = 'modal-editar-persona';
-    modal.className = 'modal';
-    modal.style.display = 'block'; // Mostrar el modal
-    modal.innerHTML = `
-        <div class="modal-content">
-            <h2>Editar Persona</h2>
-            <form id="form-editar-persona">
-                <div class="form-group">
-                    <label for="editar-nombre">Nombre:</label>
-                    <input type="text" id="editar-nombre" value="${persona.nom}" required>
-                </div>
-                <div class="form-group">
-                    <label for="editar-email">Email:</label>
-                    <input type="email" id="editar-email" value="${persona.mail || ''}" placeholder="email@ejemplo.com">
-                </div>
-                <div class="modal-actions">
-                    <button type="submit" class="btn-action">Guardar</button>
-                    <button type="button" class="btn-action btn-delete" onclick="cerrarModalEditarPersona()">Cancelar</button>
-                </div>
-            </form>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    // Agregar evento al formulario
-    document.getElementById('form-editar-persona').addEventListener('submit', (e) => {
-        e.preventDefault();
-        editarPersona(id);
-    });
-    
-    // Cerrar modal al hacer clic fuera del contenido
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            cerrarModalEditarPersona();
+
+    const bodyHtml = '<form id="form-editar-persona">'
+        + '<div class="form-group"><label for="editar-nombre">Nombre</label>'
+        + '<input type="text" id="editar-nombre" value="' + escapeHtml(persona.nom) + '" required></div>'
+        + '<div class="form-group"><label for="editar-email">Email</label>'
+        + '<input type="email" id="editar-email" value="' + (persona.mail || '') + '" placeholder="email@ejemplo.com"></div>'
+        + '<div class="modal-actions">'
+        + '<button type="submit" class="btn-primary">Guardar</button>'
+        + '<button type="button" class="btn-cancel" data-close="true">Cancelar</button>'
+        + '</div></form>';
+
+    const modal = createModal({
+        title: 'Editar Persona',
+        body: bodyHtml,
+        onOpen: function(overlay, panel, close) {
+            panel.querySelector('#form-editar-persona').addEventListener('submit', function(e) {
+                e.preventDefault();
+                editarPersona(id, close);
+            });
+            panel.querySelector('[data-close]').addEventListener('click', close);
         }
     });
 }
 
-function cerrarModalEditarPersona() {
-    const modal = document.getElementById('modal-editar-persona');
-    if (modal) {
-        modal.remove();
-    }
-}
+async function editarPersona(id, closeModal) {
+    const nombre = document.getElementById('editar-nombre').value.trim();
+    const email = document.getElementById('editar-email').value.trim();
 
-async function editarPersona(id) {
-    const nombre = document.getElementById('editar-nombre').value;
-    const email = document.getElementById('editar-email').value;
-    
     try {
-        const response = await fetch(`${API_URL}/personas/${id}`, {
+        const response = await fetch(API_URL + '/personas/' + id, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                nom: nombre,
-                mail: email || null
-            })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nom: nombre, mail: email || null })
         });
-        
+
         if (response.ok) {
-            mostrarMensaje('Persona actualizada correctamente', 'success');
-            cerrarModalEditarPersona();
-            cargarPersonas(); // Forzar recarga para obtener datos actualizados
+            toast('Persona actualizada correctamente', 'success');
+            closeModal();
+            cargarPersonas();
         } else {
             const error = await response.json();
-            mostrarMensaje(`Error: ${error.error || 'No se pudo actualizar la persona'}`, 'error');
+            toast('Error: ' + (error.error || 'No se pudo actualizar'), 'error');
         }
     } catch (error) {
         console.error('Error:', error);
-        mostrarMensaje('Error al actualizar persona', 'error');
+        toast('Error al actualizar persona', 'error');
     }
 }
 
 async function eliminarPersona(id) {
-    if (!confirm('¿Estás seguro de que quieres eliminar esta persona?')) {
-        return;
-    }
-    
+    if (!confirm('Estas seguro de que quieres eliminar esta persona?')) return;
+
     try {
-        const response = await fetch(`${API_URL}/personas/${id}`, {
-            method: 'DELETE'
-        });
-        
+        const response = await fetch(API_URL + '/personas/' + id, { method: 'DELETE' });
+
         if (response.ok) {
-            mostrarMensaje('Persona eliminada correctamente', 'success');
-            cargarPersonas(); // Forzar recarga para obtener datos actualizados
+            toast('Persona eliminada correctamente', 'success');
+            cargarPersonas();
         } else {
-            // Intentar obtener el mensaje de error del servidor
             const errorData = await response.json();
-            const errorMsg = errorData.error || 'Error al eliminar persona';
-            mostrarMensaje(errorMsg, 'error');
+            toast('Error: ' + (errorData.error || 'Error al eliminar persona'), 'error');
         }
     } catch (error) {
         console.error('Error:', error);
-        mostrarMensaje('Error al eliminar persona', 'error');
+        toast('Error al eliminar persona', 'error');
     }
 }
 
 // ========================================
-// FUNCIONES PARTIDAS
+// RANKING
+// ========================================
+
+async function cargarRanking() {
+    try {
+        const response = await fetch(API_URL + '/personas/ranking');
+        const ranking = await response.json();
+        mostrarRanking(ranking);
+    } catch (error) {
+        console.error('Error al cargar ranking:', error);
+        toast('Error al cargar ranking', 'error');
+    }
+}
+
+function mostrarRanking(ranking) {
+    const container = document.getElementById('ranking-personas');
+
+    if (!Array.isArray(ranking)) {
+        container.innerHTML = '<p class="empty-state">Error al cargar ranking</p>';
+        return;
+    }
+
+    if (ranking.length === 0) {
+        container.innerHTML = '<p class="empty-state">No hay datos para mostrar</p>';
+        return;
+    }
+
+    const medals = ['\uD83E\uDD47', '\uD83E\uDD48', '\uD83E\uDD49'];
+
+    container.innerHTML = ranking.map((p, i) => {
+        const isTop3 = i < 3;
+        return '<div class="ranking-item' + (isTop3 ? ' top-three' : '') + '">'
+            + '<div class="ranking-position">' + (medals[i] || (i + 1)) + '</div>'
+            + '<div class="ranking-info"><div class="ranking-name">' + escapeHtml(p.nom) + '</div></div>'
+            + '<div class="ranking-victories">' + p.victories + ' victorias</div>'
+            + '</div>';
+    }).join('');
+}
+
+// ========================================
+// PARTIDAS
 // ========================================
 
 async function cargarPartidas() {
     try {
-        // Cargar partidas activas
-        const responseActivas = await fetch(`${API_URL}/partidas/activas`);
-        partidasActivas = await responseActivas.json();
+        const [resActivas, resFinalizadas] = await Promise.all([
+            fetch(API_URL + '/partidas/activas'),
+            fetch(API_URL + '/partidas/finalizadas')
+        ]);
+        partidasActivas = await resActivas.json();
+        partidasFinalizadas = await resFinalizadas.json();
         mostrarPartidasActivas();
-        
-        // Cargar partidas finalizadas
-        const responseFinalizadas = await fetch(`${API_URL}/partidas/finalizadas`);
-        partidasFinalizadas = await responseFinalizadas.json();
         mostrarPartidasFinalizadas();
-        
     } catch (error) {
         console.error('Error al cargar partidas:', error);
-        mostrarMensaje('Error al cargar partidas', 'error');
+        toast('Error al cargar partidas', 'error');
     }
 }
 
 function mostrarPartidasActivas() {
     const tbody = document.querySelector('#tabla-partidas-activas tbody');
-    
+
     if (partidasActivas.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No hay partidas activas</td></tr>';
         return;
     }
-    
+
     tbody.innerHTML = partidasActivas.map(partida => {
-        const tieneCorreosFallidos = partida.asignaciones && Object.keys(partida.asignaciones).length > 0;
-        
-        return `
-            <tr>
-                <td>${partida.id}</td>
-                <td><strong>${partida.nom}</strong></td>
-                <td>${partida.personas.length} jugadores</td>
-                <td>${formatearFecha(partida.fechaCreacion)}</td>
-                <td>
-                    ${tieneCorreosFallidos ? `
-                        <button class="btn-action btn-reenviar" onclick="mostrarCorreosFallidos(${partida.id})">
-                            📧 Reenviar (${Object.keys(partida.asignaciones).length})
-                        </button>
-                    ` : ''}
-                    <button class="btn-action btn-finish" onclick="abrirModalFinalizar(${partida.id})">
-                        🏆 Finalizar
-                    </button>
-                </td>
-            </tr>
-        `;
+        const tieneFallidos = partida.asignaciones && Object.keys(partida.asignaciones).length > 0;
+        return '<tr>'
+            + '<td>' + partida.id + '</td>'
+            + '<td><strong>' + escapeHtml(partida.nom) + '</strong></td>'
+            + '<td>' + partida.personas.length + ' jugadores</td>'
+            + '<td>' + formatearFecha(partida.fechaCreacion) + '</td>'
+            + '<td>'
+            + (tieneFallidos ? '<button class="btn-action btn-reenviar" onclick="mostrarCorreosFallidos(' + partida.id + ')">Reenviar (' + Object.keys(partida.asignaciones).length + ')</button> ' : '')
+            + '<button class="btn-action btn-finish" onclick="abrirModalFinalizar(' + partida.id + ')">Finalizar</button>'
+            + '</td></tr>';
     }).join('');
 }
 
 function mostrarPartidasFinalizadas() {
     const tbody = document.querySelector('#tabla-partidas-finalizadas tbody');
-    
+
     if (partidasFinalizadas.length === 0) {
         tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No hay partidas finalizadas</td></tr>';
         return;
     }
-    
-    tbody.innerHTML = partidasFinalizadas.map(partida => `
-        <tr>
-            <td>${partida.id}</td>
-            <td>${partida.nom}</td>
-            <td><strong>${partida.ganador ? partida.ganador.nom : 'N/A'}</strong></td>
-            <td>${formatearFecha(partida.fechaFinalizacion)}</td>
-        </tr>
-    `).join('');
+
+    tbody.innerHTML = partidasFinalizadas.map(partida => '<tr>'
+        + '<td>' + partida.id + '</td>'
+        + '<td>' + escapeHtml(partida.nom) + '</td>'
+        + '<td><strong>' + (partida.ganador ? escapeHtml(partida.ganador.nom) : 'N/A') + '</strong></td>'
+        + '<td>' + formatearFecha(partida.fechaFinalizacion) + '</td>'
+        + '</tr>').join('');
 }
 
 function actualizarSelectorParticipantes() {
     const container = document.getElementById('lista-participantes');
-    
-    // Validar que personas sea un array
+
     if (!Array.isArray(personas)) {
-        console.error('personas no es un array:', personas);
         container.innerHTML = '<p class="empty-state">Error al cargar personas</p>';
         return;
     }
-    
+
     if (personas.length === 0) {
-        container.innerHTML = '<p class="empty-state">Primero debes añadir personas</p>';
+        container.innerHTML = '<p class="empty-state">Primero debes anadir personas</p>';
         return;
     }
-    
-    const checkboxes = personas.map(persona => `
-        <label class="participante-checkbox">
-            <input type="checkbox" name="participante" value="${persona.id}" onchange="actualizarCheckboxSelectAll()">
-            ${persona.nom}
-        </label>
-    `).join('');
-    
-    container.innerHTML = checkboxes;
+
+    container.innerHTML = personas.map(p => '<label class="participante-checkbox">'
+        + '<input type="checkbox" name="participante" value="' + p.id + '" onchange="actualizarCheckboxSelectAll()">'
+        + escapeHtml(p.nom) + '</label>').join('');
 }
 
 function toggleSeleccionarTodos() {
-    const selectAllCheckbox = document.getElementById('select-all-checkbox');
-    const checkboxes = document.querySelectorAll('input[name="participante"]');
-    
-    checkboxes.forEach(cb => {
-        cb.checked = selectAllCheckbox.checked;
+    const selectAll = document.getElementById('select-all-checkbox');
+    document.querySelectorAll('input[name="participante"]').forEach(cb => {
+        cb.checked = selectAll.checked;
     });
 }
 
 function actualizarCheckboxSelectAll() {
-    const selectAllCheckbox = document.getElementById('select-all-checkbox');
+    const selectAll = document.getElementById('select-all-checkbox');
     const checkboxes = document.querySelectorAll('input[name="participante"]');
-    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-    
-    if (selectAllCheckbox) {
-        selectAllCheckbox.checked = allChecked;
+    if (selectAll) {
+        selectAll.checked = Array.from(checkboxes).every(cb => cb.checked);
     }
 }
 
 async function crearPartida(event) {
     event.preventDefault();
-    
-    const nombre = document.getElementById('partida-nombre').value;
+
+    const nombre = document.getElementById('partida-nombre').value.trim();
     const checkboxes = document.querySelectorAll('input[name="participante"]:checked');
-    
+
     if (checkboxes.length < 2) {
-        mostrarMensaje('Debes seleccionar al menos 2 participantes', 'error');
+        toast('Debes seleccionar al menos 2 participantes', 'error');
         return;
     }
-    
-    // Crear array de personas con solo el ID
-    const participantes = Array.from(checkboxes).map(checkbox => ({
-        id: parseInt(checkbox.value)
-    }));
-    
+
+    const participantes = Array.from(checkboxes).map(cb => ({ id: parseInt(cb.value) }));
+
+    let loadingModal = null;
     try {
-        // Mostrar modal de carga
-        mostrarModalCargaCorreos();
-        
-        const response = await fetch(`${API_URL}/partidas`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                nom: nombre,
-                personas: participantes
-            })
+        loadingModal = createModal({
+            title: 'Enviando Correos',
+            body: '<div class="loading-modal-content"><div class="spinner"></div><p>Por favor espera mientras se envian los correos a todos los participantes...</p></div>'
         });
-        
+
+        const response = await fetch(API_URL + '/partidas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nom: nombre, personas: participantes })
+        });
+
         if (response.ok) {
             const partida = await response.json();
             document.getElementById('form-partida').reset();
-            cargarPartidas(); // Forzar recarga para obtener datos actualizados
-            
-            // Obtener asignaciones y enviar via EmailJS
+            cargarPartidas();
+
             setTimeout(async () => {
                 try {
-                    const statsResponse = await fetch(`${API_URL}/partidas/${partida.id}/enviar-correos`, {
+                    const statsResponse = await fetch(API_URL + '/partidas/' + partida.id + '/enviar-correos', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ idioma: getCurrentLanguage() })
                     });
+                    loadingModal.close();
+
                     if (statsResponse.ok) {
                         const body = await statsResponse.json();
                         const resultado = body.resultado || body;
-                        // Enviar emails via EmailJS desde el navegador
-                        await enviarEmailsConEmailJS(resultado.detalles);
-                        resultado.exitosos = resultado.detalles.filter(d => d.exitoso).length;
-                        resultado.fallidos = resultado.detalles.filter(d => !d.exitoso).length;
                         mostrarModalResultadoEnvio(resultado);
                     } else {
-                        cerrarModalCargaCorreos();
-                        mostrarMensaje('✅ Partida creada correctamente!', 'success');
+                        toast('Partida creada correctamente', 'success');
                     }
                 } catch (e) {
-                    cerrarModalCargaCorreos();
-                    mostrarMensaje('✅ Partida creada correctamente!', 'success');
+                    loadingModal.close();
+                    toast('Partida creada correctamente', 'success');
                 }
-            }, 1000);
+            }, 500);
         } else {
-            cerrarModalCargaCorreos();
+            loadingModal.close();
             const error = await response.json();
-            mostrarMensaje(`Error: ${error.error || 'No se pudo crear la partida'}`, 'error');
+            toast('Error: ' + (error.error || 'No se pudo crear la partida'), 'error');
         }
     } catch (error) {
-        cerrarModalCargaCorreos();
+        if (loadingModal) loadingModal.close();
         console.error('Error:', error);
-        mostrarMensaje('Error al crear partida', 'error');
+        toast('Error al crear partida', 'error');
     }
 }
+
+// ========================================
+// FINALIZAR PARTIDA
+// ========================================
 
 function abrirModalFinalizar(partidaId) {
     const partida = partidasActivas.find(p => p.id === partidaId);
     if (!partida) return;
-    
     partidaSeleccionada = partida;
-    
+
     const container = document.getElementById('modal-ganadores-lista');
-    container.innerHTML = partida.personas.map(persona => `
-        <div class="ganador-option" onclick="finalizarPartida(${partida.id}, ${persona.id})">
-            ${persona.nom}
-        </div>
-    `).join('');
-    
+    container.innerHTML = partida.personas.map(persona => '<div class="ganador-option" onclick="finalizarPartida(' + partida.id + ', ' + persona.id + ')">'
+        + escapeHtml(persona.nom) + '</div>').join('');
+
     document.getElementById('modal-finalizar').style.display = 'block';
 }
 
@@ -569,53 +499,166 @@ function cerrarModal() {
 
 async function finalizarPartida(partidaId, ganadorId) {
     try {
-        const response = await fetch(`${API_URL}/partidas/${partidaId}/finalizar`, {
+        const response = await fetch(API_URL + '/partidas/' + partidaId + '/finalizar', {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                ganadorId: ganadorId
-            })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ganadorId: ganadorId })
         });
-        
+
         if (response.ok) {
-            mostrarMensaje('Partida finalizada correctamente!', 'success');
+            toast('Partida finalizada correctamente', 'success');
             cerrarModal();
-            cargarPartidas(); // Forzar recarga para obtener datos actualizados
-            cargarPersonas(); // Forzar recarga para actualizar victorias
+            cargarPartidas();
+            cargarPersonas();
             cargarEstadisticas();
         } else {
             const error = await response.json();
-            mostrarMensaje(`Error: ${error.error || 'No se pudo finalizar la partida'}`, 'error');
+            toast('Error: ' + (error.error || 'No se pudo finalizar la partida'), 'error');
         }
     } catch (error) {
         console.error('Error:', error);
-        mostrarMensaje('Error al finalizar partida', 'error');
+        toast('Error al finalizar partida', 'error');
     }
 }
 
 // ========================================
-// ESTADÍSTICAS
+// ESTADISTICAS
 // ========================================
 
 async function cargarEstadisticas() {
     try {
-        const response = await fetch(`${API_URL}/partidas/estadisticas`);
+        const response = await fetch(API_URL + '/partidas/estadisticas');
         const stats = await response.json();
-        
-        document.getElementById('stat-total-partidas').textContent = stats.totalPartidas;
-        document.getElementById('stat-partidas-activas').textContent = stats.partidasActivas;
-        document.getElementById('stat-partidas-finalizadas').textContent = stats.partidasFinalizadas;
-        document.getElementById('stat-total-jugadores').textContent = stats.totalJugadores;
-        
+
+        animateStat('stat-total-partidas', stats.totalPartidas);
+        animateStat('stat-partidas-activas', stats.partidasActivas);
+        animateStat('stat-partidas-finalizadas', stats.partidasFinalizadas);
+        animateStat('stat-total-jugadores', stats.totalJugadores);
     } catch (error) {
-        console.error('Error al cargar estadísticas:', error);
+        console.error('Error al cargar estadisticas:', error);
+    }
+}
+
+function animateStat(id, value) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = value;
+    el.classList.remove('animate');
+    void el.offsetWidth;
+    el.classList.add('animate');
+}
+
+// ========================================
+// EMAIL SENDING MODAL
+// ========================================
+
+function mostrarModalResultadoEnvio(resultado) {
+    let statsHtml = '<div class="envio-resumen">'
+        + renderStatCard('\u2714', resultado.exitosos, 'Enviados', 'success')
+        + renderStatCard('\u2718', resultado.fallidos, 'Fallidos', resultado.fallidos > 0 ? 'error' : '')
+        + renderStatCard('\u2261', resultado.total, 'Total', 'info')
+        + '</div>';
+
+    let failedHtml = '';
+    if (resultado.fallidos > 0) {
+        failedHtml = '<div class="envio-detalles"><h3>Correos Fallidos</h3><div class="envio-lista">'
+            + resultado.detalles.filter(d => !d.exitoso).map(detalle => '<div class="envio-item fallido">'
+                + '<div class="envio-item-icon">\u2718</div>'
+                + '<div class="envio-item-info">'
+                + '<div class="envio-item-nombre">' + escapeHtml(detalle.nombre) + '</div>'
+                + '<div class="envio-item-email">' + escapeHtml(detalle.email) + '</div>'
+                + '<div class="envio-item-mensaje">' + escapeHtml(detalle.mensaje) + '</div>'
+                + '</div>'
+                + (detalle.email !== 'Sin email' ? '<button class="btn-reenviar-sm" onclick="reenviarCorreo(' + resultado.partidaId + ', \'' + escapeAttr(detalle.email) + '\', \'' + escapeAttr(detalle.nombre) + '\')">Reenviar</button>' : '')
+                + '</div>').join('')
+            + '</div></div>';
+    }
+
+    createModal({
+        title: 'Resultado del Envio de Correos',
+        wide: true,
+        body: statsHtml + failedHtml,
+        footer: '<button class="btn-cancel" data-close="true">Cerrar</button>',
+        onOpen: function(overlay, panel, close) {
+            panel.querySelector('[data-close]').addEventListener('click', close);
+        }
+    });
+}
+
+function renderStatCard(icon, num, label, extraClass) {
+    return '<div class="envio-stat-card' + (extraClass ? ' ' + extraClass : '') + '">'
+        + '<span class="envio-icon-large">' + icon + '</span>'
+        + '<div class="envio-numero">' + num + '</div>'
+        + '<div class="envio-label">' + label + '</div>'
+        + '</div>';
+}
+
+// ========================================
+// REENVIO DE CORREOS
+// ========================================
+
+async function mostrarCorreosFallidos(partidaId) {
+    try {
+        const partida = partidasActivas.find(p => p.id === partidaId);
+        if (!partida || !partida.asignaciones) {
+            toast('No hay correos pendientes', 'info');
+            return;
+        }
+
+        const asignaciones = partida.asignaciones;
+        const personasList = partida.personas;
+
+        const detalles = Object.entries(asignaciones).map(([emailCazador, nombreVictima]) => {
+            const cazador = personasList.find(p => p.mail === emailCazador);
+            return {
+                nombre: cazador ? cazador.nom : 'Desconocido',
+                email: emailCazador,
+                exitoso: false,
+                victima: nombreVictima,
+                mensaje: 'Correo pendiente de envio'
+            };
+        });
+
+        mostrarModalResultadoEnvio({
+            partidaId: partidaId,
+            exitosos: 0,
+            fallidos: detalles.length,
+            total: detalles.length,
+            detalles: detalles
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        toast('Error al cargar correos fallidos', 'error');
+    }
+}
+
+async function reenviarCorreo(partidaId, email, nombre) {
+    if (!confirm('Reenviar correo a ' + nombre + ' (' + email + ')?')) return;
+
+    try {
+        const response = await fetch(API_URL + '/partidas/' + partidaId + '/reenviar-correo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email, idioma: getCurrentLanguage() })
+        });
+
+        if (response.ok) {
+            toast('Correo reenviado correctamente a ' + nombre, 'success');
+            await cargarPartidas();
+            // Close any open email result modal
+            document.querySelectorAll('.modal-overlay').forEach(o => o.remove());
+        } else {
+            const err = await response.json();
+            toast('Error: ' + (err.error || 'No se pudo reenviar'), 'error');
+        }
+    } catch (err) {
+        console.error('Reenvio error:', err);
+        toast('Error de conexion al reenviar correo', 'error');
     }
 }
 
 // ========================================
-// UTILIDADES
+// UTILITIES
 // ========================================
 
 function formatearFecha(fecha) {
@@ -630,273 +673,22 @@ function formatearFecha(fecha) {
     });
 }
 
-function mostrarMensaje(texto, tipo = 'info') {
-    // Crear elemento de mensaje
-    const mensaje = document.createElement('div');
-    mensaje.className = `message message-${tipo}`;
-    mensaje.textContent = texto;
-    
-    // Insertar al principio del container
-    const container = document.querySelector('.container');
-    container.insertBefore(mensaje, container.firstChild);
-    
-    // Eliminar después de 5 segundos
-    setTimeout(() => {
-        mensaje.style.animation = 'fadeOut 0.3s ease';
-        setTimeout(() => mensaje.remove(), 300);
-    }, 5000);
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
-// ========================================
-// ENVÍO DE CORREOS - EmailJS
-// ========================================
-
-/**
- * Envía emails a los participantes usando EmailJS desde el navegador.
- * @param {Array} detalles - Lista de { nombre, email, exitoso, victima } del backend
- */
-async function enviarEmailsConEmailJS(detalles) {
-    if (!emailjsConfig) {
-        console.error('EmailJS no configurado');
-        return;
-    }
-    for (const detalle of detalles) {
-        if (!detalle.exitoso || !detalle.email || detalle.email === 'Sin email') {
-            continue;
-        }
-        try {
-            const params = {
-                email: detalle.email,
-                to_name: detalle.nombre,
-                name: detalle.nombre,
-                target_name: detalle.victima
-            };
-            await emailjs.send(emailjsConfig.emailjsServiceId, emailjsConfig.emailjsTemplateId, params);
-            detalle.exitoso = true;
-            detalle.mensaje = 'Enviado correctamente';
-        } catch (err) {
-            detalle.exitoso = false;
-            detalle.mensaje = 'Error EmailJS: ' + (err.text || err.message || JSON.stringify(err));
-            console.error('EmailJS error para', detalle.email, err);
-        }
-    }
+function escapeAttr(text) {
+    if (!text) return '';
+    return text.replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-async function enviarCorreosPartida(partidaId) {
-    try {
-        mostrarMensaje('Obteniendo asignaciones...', 'info');
-        mostrarModalCargaCorreos();
-        
-        const response = await fetch(`${API_URL}/partidas/${partidaId}/enviar-correos`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ idioma: getCurrentLanguage() })
-        });
-        
-        if (response.ok) {
-            const body = await response.json();
-            const resultado = body.resultado || body;
-            await enviarEmailsConEmailJS(resultado.detalles);
-            resultado.exitosos = resultado.detalles.filter(d => d.exitoso).length;
-            resultado.fallidos = resultado.detalles.filter(d => !d.exitoso).length;
-            mostrarModalResultadoEnvio(resultado);
-        } else {
-            cerrarModalCargaCorreos();
-            const error = await response.json();
-            mostrarMensaje(`Error: ${error.error || 'No se pudieron enviar los correos'}`, 'error');
-        }
-    } catch (error) {
-        cerrarModalCargaCorreos();
-        console.error('Error:', error);
-        mostrarMensaje('Error al enviar correos', 'error');
-    }
-}
-
-function mostrarModalResultadoEnvio(resultado) {
-    // Cerrar modal de carga primero
-    cerrarModalCargaCorreos();
-    
-    // Crear modal dinámicamente
-    const modalHtml = `
-        <div id="modal-envio" class="modal" style="display: block;">
-            <div class="modal-content" style="padding: 20px 30px 30px 30px;">
-                <button class="close-btn" onclick="cerrarModalEnvio()" title="Cerrar">✕</button>
-                <h2 style="margin-top: 5px;">📧 Resultado del Envío de Correos</h2>
-                
-                <div class="envio-resumen">
-                    <div class="envio-stat-card success">
-                        <div class="envio-icon-large">✅</div>
-                        <div class="envio-numero">${resultado.exitosos}</div>
-                        <div class="envio-label">Enviados</div>
-                    </div>
-                    <div class="envio-stat-card ${resultado.fallidos > 0 ? 'error' : ''}">
-                        <div class="envio-icon-large">❌</div>
-                        <div class="envio-numero">${resultado.fallidos}</div>
-                        <div class="envio-label">Fallidos</div>
-                    </div>
-                    <div class="envio-stat-card info">
-                        <div class="envio-icon-large">📊</div>
-                        <div class="envio-numero">${resultado.total}</div>
-                        <div class="envio-label">Total</div>
-                    </div>
-                </div>
-                
-                ${resultado.fallidos > 0 ? `
-                    <div class="envio-detalles">
-                        <h3>❌ Correos Fallidos:</h3>
-                        <div class="envio-lista">
-                            ${resultado.detalles.filter(d => !d.exitoso).map(detalle => `
-                                <div class="envio-item fallido">
-                                    <div class="envio-item-icon">❌</div>
-                                    <div class="envio-item-info">
-                                        <div class="envio-item-nombre">${detalle.nombre}</div>
-                                        <div class="envio-item-email">${detalle.email}</div>
-                                        <div class="envio-item-mensaje">${detalle.mensaje}</div>
-                                    </div>
-                                    ${detalle.email !== 'Sin email' ? `
-                                        <button class="btn-reenviar" onclick="reenviarCorreo(${resultado.partidaId}, '${detalle.email}', '${detalle.nombre}')">
-                                            📧 Reenviar
-                                        </button>
-                                    ` : ''}
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                ` : ''}
-                
-                <div class="modal-buttons">
-                    <button class="btn-cancel" onclick="cerrarModalEnvio()">Cerrar</button>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Agregar modal al body
-    const modalContainer = document.createElement('div');
-    modalContainer.innerHTML = modalHtml;
-    document.body.appendChild(modalContainer.firstElementChild);
-}
-
-function mostrarModalCargaCorreos() {
-    const modalHtml = `
-        <div id="modal-carga-correos" class="modal" style="display: block;">
-            <div class="modal-content" style="text-align: center;">
-                <h2>Enviando Correos</h2>
-                <div style="margin: 40px 0;">
-                    <div class="spinner"></div>
-                    <p style="margin-top: 20px; font-size: 1.1em; color: #667eea;">
-                        Por favor espera mientras se envían los correos a todos los participantes...
-                    </p>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    const modalContainer = document.createElement('div');
-    modalContainer.innerHTML = modalHtml;
-    document.body.appendChild(modalContainer.firstElementChild);
-}
-
-function cerrarModalCargaCorreos() {
-    const modal = document.getElementById('modal-carga-correos');
-    if (modal) {
-        modal.remove();
-    }
-}
-
-function cerrarModalEnvio() {
-    const modal = document.getElementById('modal-envio');
-    if (modal) {
-        modal.remove();
-    }
-}
-
-// Cerrar modal al hacer click fuera de él
-window.onclick = function(event) {
+// Click outside modal-finalizar to close
+window.addEventListener('click', function(event) {
     const modal = document.getElementById('modal-finalizar');
-    const modalEnvio = document.getElementById('modal-envio');
-    
     if (event.target === modal) {
         cerrarModal();
     }
-    
-    if (event.target === modalEnvio) {
-        cerrarModalEnvio();
-    }
-}
-
-// cargarContadorEmails y actualizarContadorEnDOM eliminados - ahora se usa EmailJS (client-side)
-
-/**
- * Muestra modal con correos fallidos de una partida
- */
-async function mostrarCorreosFallidos(partidaId) {
-    try {
-        const partida = partidasActivas.find(p => p.id === partidaId);
-        if (!partida || !partida.asignaciones) {
-            mostrarMensaje('No hay correos pendientes', 'info');
-            return;
-        }
-        
-        const asignaciones = partida.asignaciones;
-        const personas = partida.personas;
-        
-        // asignaciones: { emailJugador -> nombreVictima }
-        const detalles = Object.entries(asignaciones).map(([emailCazador, nombreVictima]) => {
-            const cazador = personas.find(p => p.mail === emailCazador);
-            return {
-                nombre: cazador ? cazador.nom : 'Desconocido',
-                email: emailCazador,
-                exitoso: false,
-                victima: nombreVictima,
-                mensaje: 'Correo pendiente de envío'
-            };
-        });
-        
-        const resultado = {
-            partidaId: partidaId,
-            exitosos: 0,
-            fallidos: detalles.length,
-            total: detalles.length,
-            detalles: detalles
-        };
-        
-        mostrarModalResultadoEnvio(resultado);
-    } catch (error) {
-        console.error('Error:', error);
-        mostrarMensaje('Error al cargar correos fallidos', 'error');
-    }
-}
-
-/**
- * Reenvía el correo a un jugador específico usando EmailJS
- */
-async function reenviarCorreo(partidaId, email, nombre) {
-    if (!confirm(`¿Reenviar correo a ${nombre} (${email})?`)) {
-        return;
-    }
-    
-    // Obtener nombre de la víctima desde las asignaciones de la partida
-    const partida = partidasActivas.find(p => p.id === partidaId);
-    const victimaNombre = partida?.asignaciones?.[email];
-    
-    if (!victimaNombre) {
-        mostrarMensaje('❌ No se encontró la asignación para este jugador', 'error');
-        return;
-    }
-    
-    try {
-        await emailjs.send(emailjsConfig.emailjsServiceId, emailjsConfig.emailjsTemplateId, {
-            email: email,
-            to_name: nombre,
-            name: nombre,
-            target_name: victimaNombre
-        });
-        mostrarMensaje(`✅ Correo reenviado correctamente a ${nombre}`, 'success');
-        await cargarPartidas();
-        cerrarModalEnvio();
-    } catch (err) {
-        console.error('EmailJS reenvio error:', err);
-        mostrarMensaje(`❌ Error EmailJS: ${err.text || err.message || 'Error desconocido'}`, 'error');
-    }
-}
+});

@@ -31,6 +31,9 @@ public class KillerKissService {
     @Autowired
     private PersonaService personaService;
 
+    @Autowired
+    private GmailService gmailService;
+
     /**
      * Obtiene todas las partidas.
      */
@@ -161,11 +164,10 @@ public class KillerKissService {
     }
 
     /**
-     * Calcula las asignaciones de la partida (jugador → víctima)
-     * y devuelve la lista para que el frontend envíe los emails via EmailJS.
-     * @param idioma Parámetro mantenido por compatibilidad (no usado en backend)
+     * Envía los correos con las asignaciones a todos los participantes
+     * usando Gmail SMTP directamente desde el backend.
      */
-    public ResultadoEnvioDTO obtenerAsignacionesPartida(KillerKiss partida, String idioma) {
+    public ResultadoEnvioDTO enviarCorreosPartida(KillerKiss partida, String idioma) {
         ResultadoEnvioDTO resultado = new ResultadoEnvioDTO();
         List<Persona> participantes = partida.getPersonas();
         Map<String, String> asignaciones = new HashMap<>();
@@ -182,9 +184,26 @@ public class KillerKissService {
                 continue;
             }
 
-            // Guardar asignación (email jugador → nombre víctima) para posible reenvío
-            asignaciones.put(jugador.getMail(), nombreVictima);
-            resultado.agregarResultado(nombreJugador, jugador.getMail(), true, "Listo para enviar via EmailJS", nombreVictima);
+            String subject = idioma.equals("ca") ? "La teva missio a Killer Kiss" : "Tu mision en Killer Kiss";
+            String html = buildEmailHtml(nombreJugador, nombreVictima, idioma);
+
+            boolean enviado;
+            String mensajeError;
+
+            if (!gmailService.isConfigured()) {
+                enviado = false;
+                mensajeError = "Gmail no configurado - crea mail.config con gmail.username y gmail.password";
+            } else {
+                enviado = gmailService.sendEmail(jugador.getMail(), subject, html);
+                mensajeError = "Error al enviar";
+            }
+
+            if (enviado) {
+                asignaciones.put(jugador.getMail(), nombreVictima);
+                resultado.agregarResultado(nombreJugador, jugador.getMail(), true, "Enviado correctamente", nombreVictima);
+            } else {
+                resultado.agregarResultado(nombreJugador, jugador.getMail(), false, mensajeError, nombreVictima);
+            }
         }
 
         partida.setAsignaciones(asignaciones);
@@ -192,6 +211,54 @@ public class KillerKissService {
 
         resultado.setPartidaId(partida.getId());
         return resultado;
+    }
+
+    /**
+     * Reenvia un correo individual a un jugador concreto.
+     */
+    public boolean reenviarCorreoIndividual(Long partidaId, String email, String idioma) {
+        KillerKiss partida = partidaRepository.findById(partidaId)
+                .orElseThrow(() -> new RuntimeException("Partida no encontrada"));
+
+        String victimaNombre = partida.getAsignaciones().get(email);
+        if (victimaNombre == null) {
+            return false;
+        }
+
+        Persona jugador = partida.getPersonas().stream()
+                .filter(p -> email.equals(p.getMail()))
+                .findFirst().orElse(null);
+
+        String nombre = jugador != null ? jugador.getNom() : "Jugador";
+        String subject = idioma.equals("ca") ? "La teva missio a Killer Kiss" : "Tu mision en Killer Kiss";
+        String html = buildEmailHtml(nombre, victimaNombre, idioma);
+        return gmailService.sendEmail(email, subject, html);
+    }
+
+    private String buildEmailHtml(String nombreJugador, String nombreVictima, String idioma) {
+        String titulo = idioma.equals("ca") ? "La teva missio a Killer Kiss" : "Tu mision en Killer Kiss";
+        String saludo = idioma.equals("ca") ? "Hola" : "Hola";
+        String mensaje = idioma.equals("ca")
+                ? "Estas participant en una partida de <strong>Killer Kiss</strong>!"
+                : "Estas participando en una partida de <strong>Killer Kiss</strong>!";
+        String tuVictima = idioma.equals("ca") ? "La teva victima es:" : "Tu victima es:";
+        String instruccion = idioma.equals("ca")
+                ? "Has de fer un peto a la teva victima sense que et vegin. Bona sort!"
+                : "Debes besar a tu victima sin que te vean. Buena suerte!";
+
+        return "<div style=\"font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;max-width:500px;margin:0 auto\">"
+                + "<div style=\"background:linear-gradient(135deg,#667eea,#764ba2);padding:30px;border-radius:15px 15px 0 0;text-align:center\">"
+                + "<h1 style=\"color:white;margin:0;font-size:28px\">" + titulo + "</h1>"
+                + "</div>"
+                + "<div style=\"background:white;padding:30px;border-radius:0 0 15px 15px;box-shadow:0 4px 15px rgba(0,0,0,0.1)\">"
+                + "<p style=\"font-size:16px\">" + saludo + " <strong>" + nombreJugador + "</strong>,</p>"
+                + "<p style=\"font-size:16px\">" + mensaje + "</p>"
+                + "<div style=\"background:#f8f4ff;border-left:4px solid #764ba2;padding:15px;margin:20px 0;border-radius:8px\">"
+                + "<p style=\"margin:0;color:#666;font-size:14px\">" + tuVictima + "</p>"
+                + "<h2 style=\"margin:5px 0;color:#764ba2;font-size:32px\">" + nombreVictima + "</h2>"
+                + "</div>"
+                + "<p style=\"font-size:14px;color:#888\">" + instruccion + "</p>"
+                + "</div></div>";
     }
 
     /**
