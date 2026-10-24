@@ -416,6 +416,7 @@ header h1 {
   mask-composite: exclude;
   opacity: 0;
   transition: opacity var(--duration-fast);
+  pointer-events: none;
 }
 
 .form-container:hover::before { opacity: 1; }
