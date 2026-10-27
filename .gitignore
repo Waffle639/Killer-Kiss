@@ -48,3 +48,5 @@ mail.config
 src/main/resources/application-local.properties
 
 *.log
+# Makefile
+app.pid
